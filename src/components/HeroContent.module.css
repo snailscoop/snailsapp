@@ -1,0 +1,177 @@
+.wrapper {
+  position: fixed;
+  top: 70px;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.content {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 4rem;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5rem;
+  pointer-events: auto;
+}
+
+.titleGroup h1 {
+  font-size: clamp(4rem, 8vw, 7rem);
+  font-weight: 700;
+  color: white;
+  text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+  letter-spacing: 0.05em;
+  line-height: 1;
+  margin: 0;
+}
+
+.titleGroup p {
+  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  color: white;
+  margin: 0;
+  font-weight: 400;
+  opacity: 0.9;
+  margin-left: 0.2em;
+}
+
+.mascotWrapper {
+  position: absolute;
+  top: 50%;
+  right: 5%;
+  transform: translateY(-60%);
+  width: 45%;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.mascot {
+  width: auto;
+  height: clamp(300px, 45vh, 500px);
+  filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.15));
+}
+
+.communityWrapper {
+  margin-top: 1rem;
+  margin-left: 0.2em;
+}
+
+.dropdownContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.dropdown {
+  position: absolute;
+  top: calc(100% - 5px);
+  left: 0;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  overflow: hidden;
+  min-width: 340px;
+  z-index: 10;
+  display: flex;
+}
+
+.dropdownLinks {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dropdownImage {
+  width: 140px;
+  display: flex;
+  align-items: stretch;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.dropdownImage img {
+  width: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.dropdownItem {
+  display: block;
+  padding: 0.75rem 1.5rem;
+  color: white;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.dropdownItem:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.communityButton {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+}
+
+.communityButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+@media (max-width: 1024px) {
+  .mascotWrapper {
+    width: 40%;
+  }
+  
+  .mascot {
+    height: clamp(250px, 40vh, 400px);
+  }
+}
+
+@media (max-width: 768px) {
+  .content {
+    padding: 0 2rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .titleGroup {
+    align-items: center;
+    text-align: center;
+  }
+
+  .mascotWrapper {
+    position: relative;
+    top: 2rem;
+    right: auto;
+    transform: none;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .mascot {
+    height: clamp(200px, 35vh, 300px);
+  }
+} 
