@@ -89,7 +89,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
     };
     checkConnection();
-  }, []);
+  }, [connect]);
 
   const value = React.useMemo(() => ({
     address,

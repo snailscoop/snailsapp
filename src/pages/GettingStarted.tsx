@@ -197,32 +197,26 @@ const GettingStarted: React.FC = () => {
                 </div>
                 <div className={styles.traitRow}>
                   <div className={styles.traitField}>
-                    <span className={styles.label}>Price:</span>
-                    <span className={styles.value}>{info.price || 'N/A'}</span>
+                    <span className={styles.label}>Minted:</span>
+                    <span className={styles.value}>{info.minted} / {info.totalSupply}</span>
                   </div>
                   <div className={styles.traitField}>
-                    <span className={styles.label}>Minted:</span>
-                    <span className={styles.value}>{`${info.minted || '0'}/${info.totalSupply || '0'}`}</span>
+                    <span className={styles.label}>Price:</span>
+                    <span className={styles.value}>{info.price}</span>
                   </div>
                 </div>
               </div>
-              <div className={styles.buttonRow}>
+              <div className={styles.buttonGroup}>
                 <button 
-                  className={`${styles.actionButton} ${styles.viewButton}`}
+                  className={styles.watchButton}
                   onClick={() => handleViewVideo(address)}
                 >
-                  View Video
+                  Watch Video
                 </button>
                 <button 
-                  className={`${styles.actionButton} ${styles.tipButton}`}
+                  className={`${styles.mintButton} ${txHash[address] ? styles.minted : ''}`}
                   onClick={() => handleMint(address, COLLECTIONS.find(c => c.address === address)?.minter || '')}
-                >
-                  Tip Creator
-                </button>
-                <button 
-                  className={`${styles.actionButton} ${styles.mintButton}`}
-                  onClick={() => handleMint(address, COLLECTIONS.find(c => c.address === address)?.minter || '')}
-                  disabled={isMinting[address] || !address}
+                  disabled={isMinting[address] || !!txHash[address]}
                 >
                   {getMintButtonText(address)}
                 </button>
@@ -231,23 +225,6 @@ const GettingStarted: React.FC = () => {
           </div>
         ))
       )}
-
-      {error && <div className={styles.error}>{error}</div>}
-      {Object.entries(txHash).map(([address, hash]) => (
-        hash && (
-          <div key={address} className={styles.success}>
-            Successfully minted! View transaction{' '}
-            <a
-              href={`https://www.mintscan.io/stargaze/txs/${hash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className={styles.txLink}
-            >
-              here
-            </a>
-          </div>
-        )
-      ))}
     </div>
   );
 };

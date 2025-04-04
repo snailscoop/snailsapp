@@ -1,90 +1,73 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import styles from './ContentCategories.module.css';
 
 const ContentCategories: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handleCategoryClick = (path: string) => {
-    navigate(path);
-  };
-
   return (
-    <div className={styles.wrapper}>
-      <div className={styles.section}>
-        <h2>EDUCATIONAL CONTENT</h2>
+    <>
+      <div className={styles.wrapper}>
+        <div className={styles.header}>
+          <h2>EDUCATIONAL CONTENT</h2>
+          <p>SNAILS. rewards its holder to produce educational content about the Cosmos Ecosystem.</p>
+        </div>
         <div className={styles.container}>
-          <div 
-            className={styles.category}
-            onClick={() => handleCategoryClick('/getting-started')}
-            role="link"
-            tabIndex={0}
-          >
+          <Link to="/getting-started" className={styles.category}>
             <h3>Getting Started</h3>
             <p>Essential guides and tutorials for entering the Cosmos ecosystem.</p>
-          </div>
-          <div 
-            className={styles.category}
-            onClick={() => handleCategoryClick('/exploring-cosmos')}
-            role="link"
-            tabIndex={0}
-          >
+          </Link>
+          <Link to="/exploring-cosmos" className={styles.category}>
             <h3>Exploring the Cosmos</h3>
             <p>Deep dive into the Cosmos ecosystem and discover its potential.</p>
-          </div>
-          <div 
-            className={styles.category}
-            onClick={() => handleCategoryClick('/community-building')}
-            role="link"
-            tabIndex={0}
-          >
+          </Link>
+          <Link to="/community-building" className={styles.category}>
             <h3>Community Building</h3>
             <p>Learn how to engage with and grow the Cosmos community.</p>
-          </div>
-          <div 
-            className={styles.category}
-            onClick={() => handleCategoryClick('/blogs')}
-            role="link"
-            tabIndex={0}
-          >
+          </Link>
+          <Link to="/blogs" className={styles.category}>
             <h3>Blogs</h3>
             <p>Read and contribute to our growing collection of educational content.</p>
-          </div>
+          </Link>
         </div>
       </div>
 
-      <div className={styles.section}>
-        <h2>CO-OP</h2>
+      <div className={styles.wrapper}>
+        <div className={styles.header}>
+          <h2>CO-OP</h2>
+          <p>Join our creator Co-Op and collaborate with other content creators in the Cosmos ecosystem.</p>
+        </div>
         <div className={styles.container}>
           <Link to="/coop" className={styles.category}>
-            <h3>SNAILS. Co-op</h3>
-            <p>Join our cooperative community and contribute to the ecosystem.</p>
+            <h3>SNAILS. CO-OP</h3>
+            <p>Join our creator cooperative and contribute to the Cosmos ecosystem's growth through educational content.</p>
           </Link>
           <Link to="/publishing" className={styles.category}>
-            <h3>Publishing Group</h3>
-            <p>Be part of our content creation and publishing team.</p>
+            <h3>PUBLISHING GROUP</h3>
+            <p>Collaborate with other creators and publish high-quality content for the Cosmos community.</p>
           </Link>
         </div>
       </div>
 
-      <div className={styles.section}>
-        <h2>TRADE</h2>
+      <div className={styles.wrapper}>
+        <div className={styles.header}>
+          <h2>TRADE</h2>
+          <p>Trade and collect SNAILS. NFTs on the Stargaze marketplace.</p>
+        </div>
         <div className={styles.container}>
           <a href="https://www.stargaze.zone/m/snailscoop/tokens" target="_blank" rel="noopener noreferrer" className={styles.category}>
-            <h3>Secondary Market</h3>
-            <p>Trade SNAILS NFTs on the Stargaze marketplace.</p>
+            <h3>SECONDARY MARKET</h3>
+            <p>Trade SNAILS. NFTs on the secondary market through Stargaze.</p>
           </a>
           <a href="https://www.stargaze.zone/l/snailssong" target="_blank" rel="noopener noreferrer" className={styles.category}>
-            <h3>Theme Song</h3>
-            <p>Get the official SNAILS theme song NFT.</p>
+            <h3>THEME SONG</h3>
+            <p>Collect the official SNAILS. theme song NFT on Stargaze.</p>
           </a>
           <a href="https://www.stargaze.zone/l/snailssong" target="_blank" rel="noopener noreferrer" className={styles.category}>
-            <h3>Christmas OEM</h3>
-            <p>Collect the special Christmas edition NFT.</p>
+            <h3>CHRISTMAS OEM</h3>
+            <p>Get the special SNAILS. Christmas OEM collection on Stargaze.</p>
           </a>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 

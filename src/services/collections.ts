@@ -154,7 +154,7 @@ export class CollectionService {
     return collections.filter(c => 
       c.name.toLowerCase().includes(lowercaseQuery) ||
       c.description.toLowerCase().includes(lowercaseQuery) ||
-      c.creator.name.toLowerCase().includes(lowercaseQuery)
+      c.topics.some(topic => topic.toLowerCase().includes(lowercaseQuery))
     );
   }
 
@@ -168,26 +168,8 @@ export class CollectionService {
 
   private async getMintConfig(contractAddress: string) {
     try {
-      const configQuery = {
-        config: {}
-      };
-      const config = await this.client!.queryContractSmart(contractAddress, configQuery);
-      
-      let status: 'active' | 'ended' | 'upcoming' = 'upcoming';
-      if (config.start_time && new Date(config.start_time * 1000) > new Date()) {
-        status = 'upcoming';
-      } else if (config.token_count >= config.num_tokens) {
-        status = 'ended';
-      } else {
-        status = 'active';
-      }
-
-      return {
-        price: config.unit_price ? `${parseInt(config.unit_price) / 1000000} STARS` : "TBA",
-        maxTokens: config.num_tokens || 0,
-        mintedTokens: config.token_count || 0,
-        status
-      };
+      const response = await this.client!.queryContractSmart(contractAddress, { mint_config: {} });
+      return response;
     } catch (error) {
       console.error('Error fetching mint config:', error);
       return null;

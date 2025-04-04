@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useGun } from '../contexts/GunContext';
+import { useWallet } from '../contexts/WalletContext';
 import NavDropdown from './NavDropdown';
 import styles from './Header.module.css';
 
@@ -27,6 +28,19 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ apiStatus }) => {
   const { connectionStatus: gunStatus } = useGun();
+  const { address, isConnecting, error, connect, disconnect } = useWallet();
+
+  const handleWalletClick = async () => {
+    if (address) {
+      disconnect();
+    } else {
+      await connect();
+    }
+  };
+
+  const formatAddress = (addr: string) => {
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
 
   return (
     <header className={styles.header}>
@@ -71,7 +85,25 @@ const Header: React.FC<HeaderProps> = ({ apiStatus }) => {
             <TrafficLight status={apiStatus} label="API" />
             <TrafficLight status={gunStatus} label="P2P" />
           </div>
+          <button 
+            className={styles.connectButton}
+            onClick={handleWalletClick}
+            disabled={isConnecting}
+          >
+            {isConnecting ? (
+              'Connecting...'
+            ) : address ? (
+              formatAddress(address)
+            ) : (
+              'Connect Wallet'
+            )}
+          </button>
           <NavDropdown />
+          {error && (
+            <div className={styles.error}>
+              {error}
+            </div>
+          )}
         </div>
       </div>
     </header>
