@@ -1,11 +1,14 @@
 import { Window as KeplrWindow } from "@keplr-wallet/types";
-import { SigningStargateClient } from "@cosmjs/stargate";
+import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { GasPrice } from "@cosmjs/stargate";
 
 declare global {
   interface Window extends KeplrWindow {}
 }
 
 const CHAIN_ID = "stargaze-1";
+const RPC_ENDPOINT = "https://rpc.stargaze-apis.com/";
+const DEFAULT_GAS_PRICE = GasPrice.fromString('0.05ustars');
 
 export const connectKeplr = async () => {
   try {
@@ -24,11 +27,11 @@ export const connectKeplr = async () => {
     const accounts = await offlineSigner.getAccounts();
     const address = accounts[0].address;
 
-    // Create a Stargate client
-    const rpcEndpoint = "https://rpc.stargaze-apis.com/";
-    const client = await SigningStargateClient.connectWithSigner(
-      rpcEndpoint,
-      offlineSigner
+    // Create a CosmWasm client
+    const client = await SigningCosmWasmClient.connectWithSigner(
+      RPC_ENDPOINT,
+      offlineSigner,
+      { gasPrice: DEFAULT_GAS_PRICE }
     );
 
     return {

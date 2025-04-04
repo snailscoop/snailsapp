@@ -1,0 +1,76 @@
+.profilePage {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.statusSection {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 12px;
+  padding: 2rem;
+  margin: 2rem 0;
+}
+
+.statusSection h3 {
+  margin: 0 0 1.5rem 0;
+  color: white;
+  font-size: 1.2rem;
+}
+
+.statusGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+.statusItem {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+  padding: 1.5rem;
+}
+
+.statusLight {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.light {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.light.green {
+  background: #44ff44;
+  box-shadow: 0 0 8px rgba(68, 255, 68, 0.5);
+}
+
+.light.blue {
+  background: #4488ff;
+  box-shadow: 0 0 8px rgba(68, 136, 255, 0.5);
+}
+
+.light.yellow {
+  background: #ffdd44;
+  box-shadow: 0 0 8px rgba(255, 221, 68, 0.5);
+}
+
+.light.red {
+  background: #ff4444;
+  box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
+}
+
+.statusLabel {
+  color: white;
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+
+.statusItem p {
+  color: #999;
+  margin: 0;
+  line-height: 1.5;
+  font-size: 0.9rem;
+} 

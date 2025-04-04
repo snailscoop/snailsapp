@@ -1,4 +1,5 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import { isEqual } from 'lodash';
 
 const STARGAZE_RPC = "https://rpc.stargaze-apis.com/";
 const CONTRACT_ADDRESS = "stars1sryvfl50ep8u450u27qj7fgularqfxycwqhdp057260lvuhpkfvs28fag0";
@@ -31,6 +32,9 @@ export class CollectionService {
   private client: CosmWasmClient | null = null;
   private updateInterval: NodeJS.Timeout | null = null;
   private updateCallbacks: ((collections: OEMCollection[]) => void)[] = [];
+  private lastFetchedData: OEMCollection[] | null = null;
+  private lastFetchTime: number = 0;
+  private readonly FETCH_COOLDOWN = 10000; // 10 seconds minimum between fetches
 
   constructor() {
     this.initializeClient();
@@ -53,12 +57,21 @@ export class CollectionService {
     
     this.updateInterval = setInterval(async () => {
       try {
-        const collections = await this.fetchLatestData();
-        this.notifySubscribers(collections);
+        const now = Date.now();
+        // Only fetch if enough time has passed since last fetch
+        if (now - this.lastFetchTime >= this.FETCH_COOLDOWN) {
+          const collections = await this.fetchLatestData();
+          // Only notify if data has changed
+          if (!this.lastFetchedData || !isEqual(collections, this.lastFetchedData)) {
+            this.lastFetchedData = collections;
+            this.notifySubscribers(collections);
+          }
+          this.lastFetchTime = now;
+        }
       } catch (error) {
         console.error('Error polling collection data:', error);
       }
-    }, 5000);
+    }, 10000); // Increased polling interval to 10 seconds
   }
 
   private async fetchLatestData(): Promise<OEMCollection[]> {
@@ -66,34 +79,51 @@ export class CollectionService {
       await this.initializeClient();
     }
 
-    const [metadata, mintConfig] = await Promise.all([
-      this.client!.queryContractSmart(CONTRACT_ADDRESS, { contract_info: {} }),
-      this.getMintConfig(CONTRACT_ADDRESS)
-    ]);
+    // Return cached data if within cooldown period
+    const now = Date.now();
+    if (this.lastFetchedData && (now - this.lastFetchTime < this.FETCH_COOLDOWN)) {
+      return this.lastFetchedData;
+    }
 
-    return [{
-      contractAddress: CONTRACT_ADDRESS,
-      name: metadata.name || "Educational Video",
-      description: metadata.description || "Learn about the Cosmos ecosystem",
-      videoUrl: metadata.animation_url || metadata.youtube_url || "",
-      thumbnailUrl: metadata.image || "/path/to/default-thumbnail.jpg",
-      creator: {
-        name: metadata.creator || "SNAILS DAO",
-        link: `/creator/${metadata.creator || "snails-dao"}`
-      },
-      duration: metadata.duration || "00:00",
-      mintInfo: {
-        price: {
-          amount: mintConfig?.price?.split(' ')[0] || "0",
-          denom: mintConfig?.price?.split(' ')[1] || "STARS"
+    try {
+      const [metadata, mintConfig] = await Promise.all([
+        this.client!.queryContractSmart(CONTRACT_ADDRESS, { contract_info: {} }),
+        this.getMintConfig(CONTRACT_ADDRESS)
+      ]);
+
+      const platform = metadata.youtube_url ? "youtube" as const : "rumble" as const;
+      const collections: OEMCollection[] = [{
+        contractAddress: CONTRACT_ADDRESS,
+        name: metadata.name || "Educational Video",
+        description: metadata.description || "Learn about the Cosmos ecosystem",
+        videoUrl: metadata.animation_url || metadata.youtube_url || "",
+        thumbnailUrl: metadata.image || "/path/to/default-thumbnail.jpg",
+        creator: {
+          name: metadata.creator || "SNAILS DAO",
+          link: `/creator/${metadata.creator || "snails-dao"}`
         },
-        totalSupply: mintConfig?.maxTokens || 0,
-        mintedCount: mintConfig?.mintedTokens || 0,
-        mintStatus: mintConfig?.status || "upcoming"
-      },
-      topics: metadata.attributes?.map((attr: any) => attr.value) || ["education", "cosmos"],
-      platform: metadata.youtube_url ? "youtube" : "rumble"
-    }];
+        duration: metadata.duration || "00:00",
+        mintInfo: {
+          price: {
+            amount: mintConfig?.price?.split(' ')[0] || "0",
+            denom: mintConfig?.price?.split(' ')[1] || "STARS"
+          },
+          totalSupply: mintConfig?.maxTokens || 0,
+          mintedCount: mintConfig?.mintedTokens || 0,
+          mintStatus: mintConfig?.status || "upcoming"
+        },
+        topics: metadata.attributes?.map((attr: any) => attr.value) || ["education", "cosmos"],
+        platform
+      }];
+
+      this.lastFetchedData = collections;
+      this.lastFetchTime = now;
+      return collections;
+    } catch (error) {
+      console.error('Error fetching collection data:', error);
+      // Return last known good data if available
+      return this.lastFetchedData || [];
+    }
   }
 
   private notifySubscribers(collections: OEMCollection[]) {

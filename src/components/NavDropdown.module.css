@@ -1,0 +1,61 @@
+.dropdownContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.snailsImage {
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 6px;
+  object-fit: cover;
+}
+
+.snailsImage:hover {
+  transform: scale(1.05);
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+.dropdownMenu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: rgba(0, 0, 0, 0.9);
+  border-radius: 8px;
+  padding: 8px;
+  min-width: 180px;
+  z-index: 1000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-top: 8px;
+}
+
+.dropdownItem {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  text-align: left;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.dropdownItem:hover {
+  background-color: rgba(255, 107, 0, 0.2);
+  color: #ff6b00;
+}
+
+.dropdownMenu::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 20px;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid rgba(0, 0, 0, 0.9);
+} 

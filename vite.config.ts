@@ -4,9 +4,12 @@ import react from '@vitejs/plugin-react'
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
+  optimizeDeps: {
+    include: ['gun']
+  },
   server: {
     port: 5174,
-    host: true,
+    host: '0.0.0.0',
     open: true,
     proxy: {
       '/graphql': {
@@ -18,6 +21,14 @@ export default defineConfig({
           'Content-Type': 'application/json',
         }
       }
+    },
+    watch: {
+      usePolling: true,
+      interval: 1000
+    },
+    hmr: {
+      overlay: true,
+      clientPort: 5174
     }
   },
   base: '/',

@@ -1,0 +1,164 @@
+.videoContainer {
+  position: relative;
+  width: 100%;
+  background: #000;
+  border-radius: 8px;
+  overflow: hidden;
+  aspect-ratio: 16/9;
+}
+
+.video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.controls {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.7));
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  z-index: 20;
+}
+
+.videoContainer:hover .controls {
+  opacity: 1;
+}
+
+.playButton, .stopButton, .fullscreenButton, .volumeButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease;
+  color: white;
+  z-index: 20;
+}
+
+.playButton:hover, .stopButton:hover, .fullscreenButton:hover, .volumeButton:hover {
+  transform: scale(1.1);
+}
+
+.playButton svg, .stopButton svg, .fullscreenButton svg, .volumeButton svg {
+  width: 24px;
+  height: 24px;
+  fill: currentColor;
+}
+
+.playButton img, .stopButton img {
+  width: 24px;
+  height: 24px;
+}
+
+.progressContainer {
+  flex: 1;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  position: relative;
+}
+
+.progressContainer:hover {
+  height: 6px;
+}
+
+.progressBar {
+  height: 100%;
+  background: #FF585D;
+  border-radius: 2px;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.volumeContainer {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.volumeSlider {
+  width: 0;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+  cursor: pointer;
+  transition: width 0.3s ease;
+  overflow: hidden;
+}
+
+.volumeContainer:hover .volumeSlider {
+  width: 80px;
+}
+
+.volumeLevel {
+  height: 100%;
+  background: #FF585D;
+  border-radius: 2px;
+}
+
+.timestamp {
+  color: white;
+  font-size: 14px;
+  min-width: 100px;
+  text-align: center;
+}
+
+.preview {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+  gap: 12px;
+  z-index: 10;
+}
+
+.preview img {
+  width: 64px;
+  height: 64px;
+  transition: transform 0.2s ease;
+  filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+  animation: glow 2s ease-in-out infinite;
+}
+
+.preview:hover img {
+  transform: scale(1.1);
+}
+
+.previewText {
+  color: white;
+  font-size: 16px;
+  font-weight: 500;
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  opacity: 0.9;
+}
+
+@keyframes glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 10px rgba(255, 255, 255, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(255, 255, 255, 0.8));
+  }
+} 
