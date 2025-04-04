@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useGun } from '../contexts/GunContext';
 import { useWallet } from '../contexts/WalletContext';
+import { useNFTVerification } from '../hooks/useNFTVerification';
 import NavDropdown from './NavDropdown';
 import styles from './Header.module.css';
 
@@ -26,9 +27,58 @@ interface HeaderProps {
   apiStatus: 'green' | 'blue' | 'yellow' | 'red';
 }
 
+interface UserData {
+  name?: string;
+  displayNamePreference?: 'wallet' | 'custom';
+}
+
+const displayUsername = (address: string, isVerified: boolean, userData?: UserData) => {
+  let displayName = `${address.slice(0, 6)}...${address.slice(-4)}`;
+  
+  if (userData?.displayNamePreference === 'custom' && userData?.name) {
+    displayName = userData.name;
+  }
+  
+  return (
+    <span className={styles.usernameDisplay}>
+      {displayName}
+      {isVerified && (
+        <span 
+          className={styles.verifiedBadge} 
+          title="Verified SNAILS holder"
+          role="img" 
+          aria-label="Snail emoji indicating verified SNAILS holder"
+        >
+          🐌
+        </span>
+      )}
+    </span>
+  );
+};
+
 const Header: React.FC<HeaderProps> = ({ apiStatus }) => {
-  const { connectionStatus: gunStatus } = useGun();
+  const { gun, connectionStatus: gunStatus } = useGun();
   const { address, isConnecting, error, connect, disconnect } = useWallet();
+  const { isVerified } = useNFTVerification();
+  const [userData, setUserData] = useState<UserData>();
+
+  useEffect(() => {
+    if (!gun || !address) {
+      setUserData(undefined);
+      return;
+    }
+
+    const userRef = gun.get('users').get(address);
+    userRef.on((data: UserData) => {
+      if (data) {
+        setUserData(data);
+      }
+    });
+
+    return () => {
+      userRef.off();
+    };
+  }, [gun, address]);
 
   const handleWalletClick = async () => {
     if (address) {
@@ -36,10 +86,6 @@ const Header: React.FC<HeaderProps> = ({ apiStatus }) => {
     } else {
       await connect();
     }
-  };
-
-  const formatAddress = (addr: string) => {
-    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
   return (
@@ -93,7 +139,7 @@ const Header: React.FC<HeaderProps> = ({ apiStatus }) => {
             {isConnecting ? (
               'Connecting...'
             ) : address ? (
-              formatAddress(address)
+              displayUsername(address, isVerified, userData)
             ) : (
               'Connect Wallet'
             )}

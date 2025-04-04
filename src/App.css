@@ -1,6 +1,6 @@
 :root {
-  --header-height: 64px;
-  --max-width: 1200px;
+  --header-height: 80px;
+  --max-width: 1440px;
   --background-primary: #0D0E12;
   --background-secondary: #1a1a1a;
   --text-primary: #ffffff;
@@ -18,6 +18,8 @@ html, body {
   background: var(--background-primary);
   color: var(--text-primary);
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 #root {
@@ -33,6 +35,7 @@ html, body {
   min-height: 100vh;
   background-color: var(--background-primary);
   color: var(--text-primary);
+  padding-top: var(--header-height);
 }
 
 main {
@@ -40,28 +43,29 @@ main {
   width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 2rem;
-  padding-top: calc(var(--header-height) + 2rem);
+  padding: 0;
 }
 
 .page-container {
   width: 100%;
   max-width: var(--max-width);
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 4rem;
   min-height: calc(100vh - var(--header-height));
 }
 
-@media (max-width: 1280px) {
-  .page-container,
-  main {
-    padding: 1.5rem;
+@media (max-width: 1440px) {
+  .page-container {
+    padding: 2rem;
   }
 }
 
 @media (max-width: 768px) {
-  .page-container,
-  main {
+  :root {
+    --header-height: 70px;
+  }
+
+  .page-container {
     padding: 1rem;
   }
 }

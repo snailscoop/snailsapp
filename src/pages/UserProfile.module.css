@@ -1,9 +1,8 @@
 .profileContainer {
-  max-width: 1200px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 2rem;
-  color: #fff;
-  padding-top: calc(var(--header-height) + 2rem);
+  color: white;
 }
 
 .navigationBar {
@@ -80,35 +79,38 @@
 }
 
 .editForm {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 600px;
-  margin: 0 auto;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.editForm h2 {
+  margin-bottom: 2rem;
+  color: white;
 }
 
 .formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  margin-bottom: 1.5rem;
 }
 
 .formGroup label {
-  color: var(--text-primary);
-  font-weight: 500;
+  display: block;
+  margin-bottom: 0.5rem;
+  color: rgba(255, 255, 255, 0.7);
 }
 
-.editForm input,
-.editForm textarea {
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
   padding: 0.75rem;
-  background-color: #2a2a2a;
-  border: 1px solid #444;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 4px;
-  color: #fff;
+  color: white;
   font-size: 1rem;
 }
 
-.editForm textarea {
+.formGroup textarea {
   min-height: 100px;
   resize: vertical;
 }
@@ -116,41 +118,150 @@
 .buttonGroup {
   display: flex;
   gap: 1rem;
+  margin-top: 1rem;
 }
 
-.profileInfo {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
+.buttonGroup button {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.buttonGroup button:first-child {
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+}
+
+.buttonGroup button:last-child {
+  background: #4CAF50;
+  color: white;
+}
+
+.buttonGroup button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.buttonGroup button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  color: #ff4444;
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: rgba(255, 68, 68, 0.1);
+  border-radius: 4px;
+}
+
+.profileView {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 2rem;
+  border-radius: 8px;
+}
+
+.profileView h2 {
+  margin-bottom: 2rem;
+  color: white;
 }
 
 .profileHeader {
   display: flex;
+  align-items: center;
   gap: 2rem;
   margin-bottom: 2rem;
 }
 
 .avatar {
-  width: 150px;
-  height: 150px;
+  width: 120px;
+  height: 120px;
   border-radius: 50%;
   object-fit: cover;
 }
 
-.profileMeta {
+.profileInfo {
   flex: 1;
 }
 
-.profileMeta h2 {
+.profileInfo h3 {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  margin-bottom: 1rem;
+}
+
+.verificationStatus {
+  font-size: 0.9rem;
+  color: rgba(255, 255, 255, 0.7);
+  margin-top: 0.5rem;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.6;
+  }
 }
 
 .verifiedBadge {
-  font-size: 1.5rem;
+  font-size: 1.2rem;
+  margin-left: 0.5rem;
   cursor: help;
+  transition: transform 0.2s;
+  display: inline-block;
+}
+
+.verifiedBadge:hover {
+  transform: scale(1.2);
+}
+
+.bio {
+  margin-bottom: 2rem;
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.socialLinks {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.socialLinks a,
+.socialLinks p {
+  color: rgba(255, 255, 255, 0.8);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.socialLinks a:hover {
+  color: white;
+}
+
+.profileView button {
+  padding: 0.75rem 1.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.profileView button:hover {
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .walletAddress {
@@ -192,45 +303,55 @@
   height: 20px;
 }
 
-.profileBio {
-  color: var(--text-primary);
-}
-
-.profileBio h3 {
-  margin: 0 0 1rem 0;
-}
-
-.profileBio p {
-  margin: 0;
-  line-height: 1.6;
-}
-
 .nftSection {
   margin-top: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
 }
 
 .nftSection h3 {
-  margin: 0 0 1rem 0;
-  color: var(--text-primary);
-}
-
-.nftGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-top: 1rem;
+  margin-bottom: 1rem;
+  color: white;
+  font-size: 1.2rem;
 }
 
 .nftCard {
-  background-color: #444;
-  border-radius: 8px;
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
   padding: 1rem;
-  transition: all 0.2s ease;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  transition: transform 0.2s;
 }
 
 .nftCard:hover {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.nftImage {
+  width: 120px;
+  height: 120px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.nftInfo {
+  flex: 1;
+}
+
+.nftInfo h4 {
+  margin: 0 0 0.5rem 0;
+  color: white;
+  font-size: 1.1rem;
+}
+
+.nftInfo p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .loading {
@@ -239,24 +360,26 @@
   color: #888;
 }
 
-.editForm input {
-  padding: 0.75rem 1rem;
-  background: rgba(13, 17, 28, 0.6);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  color: #fff;
-  font-size: 1rem;
-  transition: all 0.2s ease;
+.select {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: white;
+  font-size: 16px;
+  color: #333;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
 }
 
-.editForm input:focus {
+.select:hover {
+  border-color: #666;
+}
+
+.select:focus {
   outline: none;
-  border-color: rgba(255, 255, 255, 0.3);
-  background: rgba(13, 17, 28, 0.8);
-}
-
-.editForm input::placeholder {
-  color: rgba(255, 255, 255, 0.5);
+  border-color: #0066cc;
+  box-shadow: 0 0 0 2px rgba(0, 102, 204, 0.2);
 }
 
 @media (max-width: 768px) {
@@ -275,7 +398,14 @@
     justify-content: center;
   }
 
-  .nftGrid {
-    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  .nftCard {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .nftImage {
+    width: 100%;
+    height: auto;
+    max-width: 200px;
   }
 } 

@@ -5,8 +5,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 6rem 0;
+  justify-content: flex-start;
+  padding: 2rem 0;
 }
 
 .wrapper + .wrapper {
@@ -18,12 +18,12 @@
   width: 100%;
   max-width: 1440px;
   margin: 0 auto;
-  padding: 4rem;
-  padding-bottom: 2rem;
+  padding: 2rem 4rem;
+  padding-bottom: 1rem;
 }
 
 .header h2 {
-  font-size: clamp(4rem, 8vw, 7rem);
+  font-size: 3rem;
   font-weight: 700;
   color: white;
   letter-spacing: 0.05em;
@@ -33,7 +33,7 @@
 }
 
 .header p {
-  font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+  font-size: 1.25rem;
   color: rgba(255, 255, 255, 0.8);
   max-width: 800px;
   margin: 0;
@@ -60,6 +60,10 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   position: relative;
   overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
 }
 
 .category::before {
@@ -105,22 +109,35 @@
   .container {
     grid-template-columns: repeat(2, 1fr);
     gap: 1.5rem;
+    padding: 1.5rem;
+  }
+
+  .header {
+    padding: 1.5rem;
   }
 }
 
 @media (max-width: 768px) {
   .header {
-    padding: 2rem;
-    text-align: center;
+    padding: 1rem;
+    text-align: left;
   }
   
   .container {
-    padding: 1rem 2rem;
+    padding: 1rem;
     grid-template-columns: 1fr;
     gap: 1rem;
   }
 
   .category {
     padding: 1.5rem;
+  }
+
+  .header h2 {
+    font-size: 2rem;
+  }
+
+  .header p {
+    font-size: 1rem;
   }
 } 

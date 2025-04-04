@@ -42,13 +42,15 @@ interface GunContextType {
   user: any;
   isConnected: boolean;
   connectionStatus: 'green' | 'blue' | 'yellow' | 'red';
+  authenticateUser: (address: string, signature: string) => Promise<void>;
 }
 
 const GunContext = createContext<GunContextType>({
   gun: null,
   user: null,
   isConnected: false,
-  connectionStatus: 'yellow'
+  connectionStatus: 'yellow',
+  authenticateUser: async () => {}
 });
 
 export const useGun = () => useContext(GunContext);
@@ -114,17 +116,44 @@ export const GunProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     }
   };
 
+  const authenticateUser = useCallback(async (address: string, signature: string) => {
+    if (!gun) {
+      throw new Error('Gun instance not initialized');
+    }
+
+    try {
+      const userRef = gun.get('users').get(address);
+      await new Promise<void>((resolve, reject) => {
+        userRef.put({
+          address,
+          signature,
+          lastActive: Date.now()
+        }, (ack: AckType) => {
+          if (ack.err) {
+            reject(new Error(ack.err));
+          } else {
+            resolve();
+          }
+        });
+      });
+      debugLog('info', '✅ User authenticated successfully');
+    } catch (error) {
+      debugLog('error', '❌ User authentication failed:', error);
+      throw error;
+    }
+  }, [gun]);
+
   const initializeGun = useCallback(() => {
     try {
       debugLog('info', '🔄 Creating new GUN instance');
       const gunOptions = {
-        peers: ['http://localhost:8765/gun'],
+        peers: ['https://gun-manhattan.herokuapp.com/gun'],
         localStorage: false,
         file: false,
         web: false,
         axe: false,
         multicast: false,
-        retry: 500,
+        retry: Infinity,
         ws: {
           maxPayload: 50 * 1024 * 1024
         }
@@ -226,7 +255,7 @@ export const GunProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, [initializeGun]);
 
   return (
-    <GunContext.Provider value={{ gun, user, isConnected, connectionStatus }}>
+    <GunContext.Provider value={{ gun, user, isConnected, connectionStatus, authenticateUser }}>
       {children}
     </GunContext.Provider>
   );

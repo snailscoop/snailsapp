@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
 import CustomVideoPlayer from '../components/CustomVideoPlayer';
 import styles from './GettingStarted.module.css';
+import { SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { MsgSend } from 'cosmjs-types/cosmos/bank/v1beta1/tx';
 
 const OM_IBC_DENOM = 'ibc/3BD86E80E000B52DA57C474A6A44E37F73D34E38A1FA79EE678E08D119FC555B';
 
@@ -29,6 +31,55 @@ interface CollectionInfo {
   price?: string;
 }
 
+interface TipModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onConfirm: (amount: string) => void;
+}
+
+const TipModal = ({ isOpen, onClose, onConfirm }: TipModalProps) => {
+  const [amount, setAmount] = useState('');
+  const [error, setError] = useState('');
+
+  const handleConfirm = () => {
+    if (!amount || isNaN(Number(amount)) || Number(amount) <= 0) {
+      setError('Please enter a valid amount');
+      return;
+    }
+    onConfirm(amount);
+    setAmount('');
+    setError('');
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <div className={styles.modalOverlay}>
+      <div className={styles.modal}>
+        <h3>Send Tip</h3>
+        <p>Support the creator by sending STARS tokens</p>
+        <input
+          type="number"
+          className={styles.tipInput}
+          value={amount}
+          onChange={(e) => setAmount(e.target.value)}
+          placeholder="Enter amount in STARS"
+          min="0"
+        />
+        {error && <div className={styles.error}>{error}</div>}
+        <div className={styles.modalButtons}>
+          <button className={styles.cancelButton} onClick={onClose}>
+            Cancel
+          </button>
+          <button className={styles.confirmButton} onClick={handleConfirm}>
+            Send Tip
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const GettingStarted: React.FC = () => {
   const navigate = useNavigate();
   const { client, address } = useWallet();
@@ -37,6 +88,8 @@ const GettingStarted: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [isMinting, setIsMinting] = useState<Record<string, boolean>>({});
   const [txHash, setTxHash] = useState<Record<string, string | null>>({});
+  const [isTipModalOpen, setIsTipModalOpen] = useState(false);
+  const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
 
   const fetchCollectionInfo = async () => {
     if (!client) return;
@@ -144,88 +197,144 @@ const GettingStarted: React.FC = () => {
     navigate(`/video/${address}`);
   };
 
+  const handleTip = async (amount: string) => {
+    if (!client || !address) {
+      alert('Please connect your wallet first');
+      return;
+    }
+
+    try {
+      const amountInUstars = Number(amount) * 1_000_000; // Convert to ustars
+      
+      const msg = {
+        typeUrl: "/cosmos.bank.v1beta1.MsgSend",
+        value: MsgSend.fromPartial({
+          fromAddress: address,
+          toAddress: collectionsInfo[selectedVideo || ''].creator,
+          amount: [{
+            denom: "ustars",
+            amount: amountInUstars.toString()
+          }]
+        })
+      };
+
+      const result = await (client as SigningCosmWasmClient).signAndBroadcast(
+        address,
+        [msg],
+        "auto"
+      );
+
+      if (result.code === 0) {
+        alert('Tip sent successfully!');
+      } else {
+        throw new Error('Transaction failed');
+      }
+    } catch (error) {
+      console.error('Error sending tip:', error);
+      alert('Failed to send tip. Please try again.');
+    }
+
+    setIsTipModalOpen(false);
+  };
+
   useEffect(() => {
     fetchCollectionInfo();
   }, [client]);
 
   return (
-    <div className={styles.container}>
-      <h1>Getting Started</h1>
-      <p>Begin your journey into the world of Web3 and blockchain</p>
+    <>
+      <div className={styles.container}>
+        <h1>Getting Started</h1>
+        <p>Begin your journey into the world of Web3 and blockchain</p>
 
-      {loading ? (
-        <div className={styles.loadingContainer}>Loading collections...</div>
-      ) : error ? (
-        <div className={styles.errorContainer}>{error}</div>
-      ) : (
-        Object.entries(collectionsInfo).map(([address, info]) => (
-          <div key={address} className={styles.videoCard}>
-            <div className={styles.thumbnailContainer}>
-              <CustomVideoPlayer 
-                src="/videos/background.mp4"
-                poster="/videos/background.mp4"
-                isPreview={true}
-              />
-            </div>
-            <div className={styles.videoInfo}>
-              <h2>{info.title}</h2>
-              <p>{info.description}</p>
-              <div className={styles.metadata}>
-                <div className={styles.traitRow}>
-                  <div className={styles.traitField}>
-                    <span className={styles.label}>Category:</span>
-                    <span className={styles.value}>{info.category || 'N/A'}</span>
+        {loading ? (
+          <div className={styles.loadingContainer}>Loading collections...</div>
+        ) : error ? (
+          <div className={styles.errorContainer}>{error}</div>
+        ) : (
+          Object.entries(collectionsInfo).map(([address, info]) => (
+            <div key={address} className={styles.videoCard}>
+              <div className={styles.thumbnailContainer}>
+                <CustomVideoPlayer 
+                  src="/videos/background.mp4"
+                  poster="/videos/background.mp4"
+                  isPreview={true}
+                />
+              </div>
+              <div className={styles.videoInfo}>
+                <h2>{info.title}</h2>
+                <p>{info.description}</p>
+                <div className={styles.metadata}>
+                  <div className={styles.traitRow}>
+                    <div className={styles.traitField}>
+                      <span className={styles.label}>Category:</span>
+                      <span className={styles.value}>{info.category || 'N/A'}</span>
+                    </div>
+                    <div className={styles.traitField}>
+                      <span className={styles.label}>Creator:</span>
+                      <span className={styles.value}>{info.creator}</span>
+                    </div>
+                    <div className={styles.traitField}>
+                      <span className={styles.label}>Music:</span>
+                      <span className={styles.value}>{info.music || 'N/A'}</span>
+                    </div>
                   </div>
-                  <div className={styles.traitField}>
-                    <span className={styles.label}>Creator:</span>
-                    <span className={styles.value}>{info.creator}</span>
+                  <div className={styles.traitRow}>
+                    <div className={styles.traitField}>
+                      <span className={styles.label}>Network:</span>
+                      <span className={styles.value}>Stargaze</span>
+                    </div>
+                    <div className={styles.traitField}>
+                      <span className={styles.label}>Topic:</span>
+                      <span className={styles.value}>Educational</span>
+                    </div>
                   </div>
-                  <div className={styles.traitField}>
-                    <span className={styles.label}>Music:</span>
-                    <span className={styles.value}>{info.music || 'N/A'}</span>
+                  <div className={styles.traitRow}>
+                    <div className={styles.traitField}>
+                      <span className={styles.label}>Minted:</span>
+                      <span className={styles.value}>{info.minted} / {info.totalSupply}</span>
+                    </div>
+                    <div className={styles.traitField}>
+                      <span className={styles.label}>Price:</span>
+                      <span className={styles.value}>{info.price}</span>
+                    </div>
                   </div>
                 </div>
-                <div className={styles.traitRow}>
-                  <div className={styles.traitField}>
-                    <span className={styles.label}>Network:</span>
-                    <span className={styles.value}>Stargaze</span>
-                  </div>
-                  <div className={styles.traitField}>
-                    <span className={styles.label}>Topic:</span>
-                    <span className={styles.value}>Educational</span>
-                  </div>
-                </div>
-                <div className={styles.traitRow}>
-                  <div className={styles.traitField}>
-                    <span className={styles.label}>Minted:</span>
-                    <span className={styles.value}>{info.minted} / {info.totalSupply}</span>
-                  </div>
-                  <div className={styles.traitField}>
-                    <span className={styles.label}>Price:</span>
-                    <span className={styles.value}>{info.price}</span>
-                  </div>
+                <div className={styles.buttonGroup}>
+                  <button 
+                    className={styles.watchButton}
+                    onClick={() => handleViewVideo(address)}
+                  >
+                    Watch Video
+                  </button>
+                  <button 
+                    className={`${styles.tipButton} ${selectedVideo === address ? styles.selected : ''}`}
+                    onClick={() => {
+                      setSelectedVideo(address);
+                      setIsTipModalOpen(true);
+                    }}
+                  >
+                    Send Tip
+                  </button>
+                  <button 
+                    className={`${styles.mintButton} ${txHash[address] ? styles.minted : ''}`}
+                    onClick={() => handleMint(address, COLLECTIONS.find(c => c.address === address)?.minter || '')}
+                    disabled={isMinting[address] || !!txHash[address]}
+                  >
+                    {getMintButtonText(address)}
+                  </button>
                 </div>
               </div>
-              <div className={styles.buttonGroup}>
-                <button 
-                  className={styles.watchButton}
-                  onClick={() => handleViewVideo(address)}
-                >
-                  Watch Video
-                </button>
-                <button 
-                  className={`${styles.mintButton} ${txHash[address] ? styles.minted : ''}`}
-                  onClick={() => handleMint(address, COLLECTIONS.find(c => c.address === address)?.minter || '')}
-                  disabled={isMinting[address] || !!txHash[address]}
-                >
-                  {getMintButtonText(address)}
-                </button>
-              </div>
             </div>
-          </div>
-        ))
-      )}
-    </div>
+          ))
+        )}
+      </div>
+      <TipModal
+        isOpen={isTipModalOpen}
+        onClose={() => setIsTipModalOpen(false)}
+        onConfirm={handleTip}
+      />
+    </>
   );
 };
 

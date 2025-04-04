@@ -1,38 +1,36 @@
 import { CosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { isEqual } from 'lodash';
+import { STARGAZE_RPC } from '../config';
 
-const STARGAZE_RPC = "https://rpc.stargaze-apis.com/";
 const CONTRACT_ADDRESS = "stars1sryvfl50ep8u450u27qj7fgularqfxycwqhdp057260lvuhpkfvs28fag0";
 
-export interface OEMCollection {
-  contractAddress: string;
-  name: string;
+export interface Video {
+  id: string;
+  title: string;
   description: string;
-  videoUrl: string;
-  thumbnailUrl: string;
-  creator: {
-    name: string;
-    link: string;
-  };
-  duration: string;
-  mintInfo: {
-    price: {
-      amount: string;
-      denom: string;
-    };
-    totalSupply: number;
-    mintedCount: number;
-    mintStatus: 'active' | 'ended' | 'upcoming';
-  };
-  topics: string[];
+  thumbnail: string;
+  url: string;
   platform: 'youtube' | 'rumble';
+}
+
+export interface Collection {
+  address: string;
+  name: string;
+  symbol: string;
+  description?: string;
+  image?: string;
+  mintConfig?: {
+    price: string;
+    startTime: string;
+    endTime?: string;
+  };
 }
 
 export class CollectionService {
   private client: CosmWasmClient | null = null;
   private updateInterval: NodeJS.Timeout | null = null;
-  private updateCallbacks: ((collections: OEMCollection[]) => void)[] = [];
-  private lastFetchedData: OEMCollection[] | null = null;
+  private updateCallbacks: ((collections: Collection[]) => void)[] = [];
+  private lastFetchedData: Collection[] | null = null;
   private lastFetchTime: number = 0;
   private readonly FETCH_COOLDOWN = 10000; // 10 seconds minimum between fetches
 
@@ -58,104 +56,84 @@ export class CollectionService {
     this.updateInterval = setInterval(async () => {
       try {
         const now = Date.now();
-        // Only fetch if enough time has passed since last fetch
         if (now - this.lastFetchTime >= this.FETCH_COOLDOWN) {
-          const collections = await this.fetchLatestData();
-          // Only notify if data has changed
+          const collections = await this.fetchLatestData(CONTRACT_ADDRESS);
           if (!this.lastFetchedData || !isEqual(collections, this.lastFetchedData)) {
-            this.lastFetchedData = collections;
-            this.notifySubscribers(collections);
+            this.lastFetchedData = [collections];
+            this.notifySubscribers([collections]);
           }
           this.lastFetchTime = now;
         }
       } catch (error) {
         console.error('Error polling collection data:', error);
       }
-    }, 10000); // Increased polling interval to 10 seconds
+    }, 10000);
   }
 
-  private async fetchLatestData(): Promise<OEMCollection[]> {
-    if (!this.client) {
-      await this.initializeClient();
-    }
-
-    // Return cached data if within cooldown period
-    const now = Date.now();
-    if (this.lastFetchedData && (now - this.lastFetchTime < this.FETCH_COOLDOWN)) {
-      return this.lastFetchedData;
-    }
-
-    try {
-      const [metadata, mintConfig] = await Promise.all([
-        this.client!.queryContractSmart(CONTRACT_ADDRESS, { contract_info: {} }),
-        this.getMintConfig(CONTRACT_ADDRESS)
-      ]);
-
-      const platform = metadata.youtube_url ? "youtube" as const : "rumble" as const;
-      const collections: OEMCollection[] = [{
-        contractAddress: CONTRACT_ADDRESS,
-        name: metadata.name || "Educational Video",
-        description: metadata.description || "Learn about the Cosmos ecosystem",
-        videoUrl: metadata.animation_url || metadata.youtube_url || "",
-        thumbnailUrl: metadata.image || "/path/to/default-thumbnail.jpg",
-        creator: {
-          name: metadata.creator || "SNAILS DAO",
-          link: `/creator/${metadata.creator || "snails-dao"}`
-        },
-        duration: metadata.duration || "00:00",
-        mintInfo: {
-          price: {
-            amount: mintConfig?.price?.split(' ')[0] || "0",
-            denom: mintConfig?.price?.split(' ')[1] || "STARS"
-          },
-          totalSupply: mintConfig?.maxTokens || 0,
-          mintedCount: mintConfig?.mintedTokens || 0,
-          mintStatus: mintConfig?.status || "upcoming"
-        },
-        topics: metadata.attributes?.map((attr: any) => attr.value) || ["education", "cosmos"],
-        platform
-      }];
-
-      this.lastFetchedData = collections;
-      this.lastFetchTime = now;
-      return collections;
-    } catch (error) {
-      console.error('Error fetching collection data:', error);
-      // Return last known good data if available
-      return this.lastFetchedData || [];
-    }
-  }
-
-  private notifySubscribers(collections: OEMCollection[]) {
+  private notifySubscribers(collections: Collection[]) {
     this.updateCallbacks.forEach(callback => callback(collections));
   }
 
-  // Public methods
-  async getCollectionData(): Promise<OEMCollection[]> {
-    return this.fetchLatestData();
+  private async getClient(): Promise<CosmWasmClient> {
+    if (!this.client) {
+      this.client = await CosmWasmClient.connect(STARGAZE_RPC);
+    }
+    return this.client;
   }
 
-  subscribeToUpdates(callback: (collections: OEMCollection[]) => void) {
-    this.updateCallbacks.push(callback);
-    // Immediately fetch and send data to the new subscriber
-    this.fetchLatestData().then(collections => callback(collections));
-    return () => {
-      this.updateCallbacks = this.updateCallbacks.filter(cb => cb !== callback);
+  async getCollectionInfo(address: string): Promise<Collection> {
+    const client = await this.getClient();
+    const queryMsg = {
+      collection_info: {}
+    };
+    const result = await client.queryContractSmart(address, queryMsg);
+    return {
+      address,
+      name: result.name,
+      symbol: result.symbol,
+      description: result.description,
+      image: result.image
     };
   }
 
-  async getCollectionsByCategory(category: string): Promise<OEMCollection[]> {
-    return this.fetchLatestData();
+  async getMintConfig(address: string): Promise<Collection['mintConfig'] | null> {
+    try {
+      const client = await this.getClient();
+      const queryMsg = {
+        minter: {}
+      };
+      const result = await client.queryContractSmart(address, queryMsg);
+      return result?.mint_config || null;
+    } catch (error) {
+      console.warn('Could not fetch mint config:', error);
+      return null;
+    }
   }
 
-  async searchCollections(query: string): Promise<OEMCollection[]> {
-    const collections = await this.fetchLatestData();
-    const lowercaseQuery = query.toLowerCase();
-    return collections.filter(c => 
-      c.name.toLowerCase().includes(lowercaseQuery) ||
-      c.description.toLowerCase().includes(lowercaseQuery) ||
-      c.topics.some(topic => topic.toLowerCase().includes(lowercaseQuery))
-    );
+  async fetchLatestData(address: string): Promise<Collection> {
+    const [collectionInfo, mintConfig] = await Promise.all([
+      this.getCollectionInfo(address),
+      this.getMintConfig(address)
+    ]);
+
+    return {
+      ...collectionInfo,
+      mintConfig: mintConfig || undefined
+    };
+  }
+
+  // Public methods
+  async getCollectionData(): Promise<Collection[]> {
+    const collection = await this.fetchLatestData(CONTRACT_ADDRESS);
+    return [collection];
+  }
+
+  subscribeToUpdates(callback: (collections: Collection[]) => void) {
+    this.updateCallbacks.push(callback);
+    this.getCollectionData().then(collections => callback(collections));
+    return () => {
+      this.updateCallbacks = this.updateCallbacks.filter(cb => cb !== callback);
+    };
   }
 
   // Cleanup method
@@ -165,14 +143,6 @@ export class CollectionService {
     }
     this.updateCallbacks = [];
   }
+}
 
-  private async getMintConfig(contractAddress: string) {
-    try {
-      const response = await this.client!.queryContractSmart(contractAddress, { mint_config: {} });
-      return response;
-    } catch (error) {
-      console.error('Error fetching mint config:', error);
-      return null;
-    }
-  }
-} 
+export const collectionService = new CollectionService(); 

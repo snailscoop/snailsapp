@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWallet } from '../contexts/WalletContext';
 import { useGun } from '../contexts/GunContext';
 import { useNFTVerification } from '../hooks/useNFTVerification';
+import { signUsernamePermit } from '../utils/wallet';
 import styles from './UserProfile.module.css';
 
 interface UserProfileData {
@@ -11,104 +12,126 @@ interface UserProfileData {
   twitter: string;
   discord: string;
   telegram: string;
-  snailsNFTs: string[];
   isVerifiedHolder: boolean;
+  displayNamePreference: 'wallet' | 'custom';
+  lastActive: number;
+  signature?: string;
+  pubKey?: string;
+  nftMetadata?: {
+    tokenId: string;
+    image: string;
+    name: string;
+    description?: string;
+  } | null;
 }
 
-interface GunUserData {
-  name?: string;
-  bio?: string;
-  avatar?: string;
-  twitter?: string;
-  discord?: string;
-  telegram?: string;
-  snailsNFTs?: string[];
-  isVerifiedHolder?: boolean;
-}
+const defaultProfileData: UserProfileData = {
+  name: '',
+  bio: '',
+  avatar: '',
+  twitter: '',
+  discord: '',
+  telegram: '',
+  isVerifiedHolder: false,
+  displayNamePreference: 'wallet',
+  lastActive: Date.now()
+};
 
 const UserProfile: React.FC = () => {
   const { address } = useWallet();
-  const { gun, user, connectionStatus } = useGun();
-  const { isVerified, loading: verificationLoading } = useNFTVerification();
-  const [profileData, setProfileData] = useState<UserProfileData>({
-    name: '',
-    bio: '',
-    avatar: '',
-    twitter: '',
-    discord: '',
-    telegram: '',
-    snailsNFTs: [],
-    isVerifiedHolder: false
-  });
+  const { gun, authenticateUser } = useGun();
+  const { loading: verificationLoading, nftMetadata } = useNFTVerification();
+  const [profileData, setProfileData] = useState<UserProfileData>(defaultProfileData);
+  const [editData, setEditData] = useState<UserProfileData>(defaultProfileData);
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<UserProfileData>({
-    name: '',
-    bio: '',
-    avatar: '',
-    twitter: '',
-    discord: '',
-    telegram: '',
-    snailsNFTs: [],
-    isVerifiedHolder: false
-  });
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     if (!gun || !address) return;
 
-    // Subscribe to profile data changes
-    const userRef = gun.get('users').get(address);
-    userRef.on((data: GunUserData) => {
-      if (data) {
-        const updatedData: UserProfileData = {
-          name: data.name || address?.slice(0, 8) + '...' + address?.slice(-4),
-          bio: data.bio || '',
-          avatar: data.avatar || '',
-          twitter: data.twitter || '',
-          discord: data.discord || '',
-          telegram: data.telegram || '',
-          snailsNFTs: data.snailsNFTs || [],
-          isVerifiedHolder: isVerified
-        };
-        setProfileData(updatedData);
-        setEditData(updatedData);
-      } else {
-        // Set default data with wallet address as name
-        const defaultData: UserProfileData = {
-          name: address?.slice(0, 8) + '...' + address?.slice(-4),
-          bio: '',
-          avatar: '',
-          twitter: '',
-          discord: '',
-          telegram: '',
-          snailsNFTs: [],
-          isVerifiedHolder: isVerified
-        };
-        setProfileData(defaultData);
-        setEditData(defaultData);
-      }
-    });
+    // Load profile data once
+    gun.get('users')
+       .get(address)
+       .once((data: any) => {
+         if (data) {
+           // Validate and set defaults for profile data
+           const validatedData: UserProfileData = {
+             name: data.name || address?.slice(0, 8) + '...' + address?.slice(-4),
+             bio: data.bio || '',
+             avatar: data.avatar || '',
+             twitter: data.twitter || '',
+             discord: data.discord || '',
+             telegram: data.telegram || '',
+             isVerifiedHolder: data.isVerifiedHolder || false,
+             displayNamePreference: data.displayNamePreference || 'wallet',
+             lastActive: data.lastActive || Date.now(),
+             signature: data.signature || undefined,
+             pubKey: data.pubKey || undefined,
+             nftMetadata: data.nftMetadata || undefined
+           };
+           setProfileData(validatedData);
+           setEditData(validatedData);
+         } else {
+           // Set default data with wallet address as name
+           const defaultData: UserProfileData = {
+             ...defaultProfileData,
+             name: address?.slice(0, 8) + '...' + address?.slice(-4)
+           };
+           setProfileData(defaultData);
+           setEditData(defaultData);
+         }
+       });
+  }, [gun, address]);
 
-    return () => {
-      userRef.off();
-    };
-  }, [gun, address, isVerified]);
-
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!gun || !address) return;
+    setIsSaving(true);
+    setSaveError(null);
 
-    const userRef = gun.get('users').get(address);
-    userRef.put({
-      name: editData.name,
-      bio: editData.bio,
-      avatar: editData.avatar,
-      twitter: editData.twitter,
-      discord: editData.discord,
-      telegram: editData.telegram,
-      snailsNFTs: editData.snailsNFTs,
-      isVerifiedHolder: editData.isVerifiedHolder
-    });
+    try {
+      // Get permit for username change
+      const permit = await signUsernamePermit(editData.name, address);
+      
+      // Authenticate user with Gun
+      await authenticateUser(address, permit.signature);
+      
+      // Create a clean profile object
+      const profileData = {
+        name: editData.name,
+        bio: editData.bio || '',
+        avatar: editData.avatar || '',
+        twitter: editData.twitter || '',
+        discord: editData.discord || '',
+        telegram: editData.telegram || '',
+        isVerifiedHolder: editData.isVerifiedHolder,
+        displayNamePreference: editData.displayNamePreference,
+        lastActive: Date.now(),
+        signature: permit.signature,
+        pubKey: permit.pub_key,
+        nftMetadata: editData.nftMetadata
+      };
 
-    setIsEditing(false);
+      // Save to GunDB
+      await new Promise<void>((resolve, reject) => {
+        gun.get('users')
+           .get(address)
+           .put(profileData, (ack: any) => {
+             if (ack.err) {
+               reject(new Error(ack.err));
+             } else {
+               resolve();
+             }
+           });
+      });
+
+      setIsEditing(false);
+    } catch (error) {
+      console.error('Error saving profile:', error);
+      setSaveError(error instanceof Error ? error.message : 'Failed to save profile');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -117,35 +140,19 @@ const UserProfile: React.FC = () => {
   };
 
   return (
-    <div className="page-container">
-      <div className={styles.navigationBar}>
-        <h1>User Profile</h1>
-        {isEditing ? (
-          <div className={styles.buttonGroup}>
-            <button onClick={handleCancel} className={styles.cancelButton}>Cancel</button>
-            <button onClick={handleSave} className={styles.saveButton}>Save Changes</button>
-          </div>
-        ) : (
-          <button onClick={() => setIsEditing(true)} className={styles.editButton}>
-            Edit Profile
-          </button>
-        )}
-      </div>
-
-      {!address ? (
-        <div className={styles.connectPrompt}>Please connect your wallet to view your profile.</div>
-      ) : isEditing ? (
-        <form className={styles.editForm} onSubmit={(e) => { e.preventDefault(); handleSave(); }}>
+    <div className={styles.profileContainer}>
+      {isEditing ? (
+        <div className={styles.editForm}>
+          <h2>Edit Profile</h2>
           <div className={styles.formGroup}>
-            <label>Name (defaults to wallet address)</label>
+            <label>Name</label>
             <input
               type="text"
               value={editData.name}
               onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-              placeholder={address?.slice(0, 8) + '...' + address?.slice(-4)}
+              placeholder="Enter your name"
             />
           </div>
-
           <div className={styles.formGroup}>
             <label>Bio</label>
             <textarea
@@ -154,29 +161,26 @@ const UserProfile: React.FC = () => {
               placeholder="Tell us about yourself"
             />
           </div>
-
           <div className={styles.formGroup}>
             <label>Avatar URL</label>
             <input
               type="text"
               value={editData.avatar}
               onChange={(e) => setEditData({ ...editData, avatar: e.target.value })}
-              placeholder="Link to your profile picture"
+              placeholder="Enter avatar URL"
             />
           </div>
-
           <div className={styles.formGroup}>
-            <label>X (Twitter) Handle</label>
+            <label>Twitter</label>
             <input
               type="text"
               value={editData.twitter}
-              onChange={(e) => setEditData({ ...editData, twitter: e.target.value.replace('@', '') })}
+              onChange={(e) => setEditData({ ...editData, twitter: e.target.value })}
               placeholder="@username"
             />
           </div>
-
           <div className={styles.formGroup}>
-            <label>Discord Username</label>
+            <label>Discord</label>
             <input
               type="text"
               value={editData.discord}
@@ -184,78 +188,82 @@ const UserProfile: React.FC = () => {
               placeholder="username#0000"
             />
           </div>
-
           <div className={styles.formGroup}>
-            <label>Telegram Username</label>
+            <label>Telegram</label>
             <input
               type="text"
               value={editData.telegram}
-              onChange={(e) => setEditData({ ...editData, telegram: e.target.value.replace('@', '') })}
+              onChange={(e) => setEditData({ ...editData, telegram: e.target.value })}
               placeholder="@username"
             />
           </div>
-        </form>
+          <div className={styles.buttonGroup}>
+            <button onClick={handleCancel} disabled={isSaving}>Cancel</button>
+            <button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Changes'}
+            </button>
+          </div>
+          {saveError && <div className={styles.error}>{saveError}</div>}
+        </div>
       ) : (
-        <div className={styles.profileContent}>
+        <div className={styles.profileView}>
+          <h2>Profile</h2>
           <div className={styles.profileHeader}>
             {profileData.avatar && (
               <img src={profileData.avatar} alt="Profile" className={styles.avatar} />
             )}
-            <div className={styles.profileMeta}>
-              <h2>
+            <div className={styles.profileInfo}>
+              <h3>
                 {profileData.name}
-                {isVerified && <span className={styles.verifiedBadge} title="Verified SNAILS holder">🐌</span>}
-              </h2>
-              <p className={styles.walletAddress}>{address}</p>
-              <p>{profileData.bio}</p>
+                {profileData.isVerifiedHolder && (
+                  <span 
+                    className={styles.verifiedBadge} 
+                    title="Verified SNAILS NFT Holder"
+                  >
+                    🐌
+                  </span>
+                )}
+              </h3>
+              {verificationLoading && (
+                <div className={styles.verificationStatus}>
+                  Verifying NFT ownership...
+                </div>
+              )}
             </div>
           </div>
-
+          {profileData.bio && <p className={styles.bio}>{profileData.bio}</p>}
           <div className={styles.socialLinks}>
             {profileData.twitter && (
-              <a 
-                href={`https://twitter.com/${profileData.twitter}`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className={styles.socialLink}
-              >
-                <img src="/images/x-logo.svg" alt="X (Twitter)" />
-                @{profileData.twitter}
+              <a href={`https://twitter.com/${profileData.twitter}`} target="_blank" rel="noopener noreferrer">
+                Twitter: @{profileData.twitter}
               </a>
             )}
-            {profileData.discord && (
-              <div className={styles.socialLink}>
-                <img src="/images/discord-logo.svg" alt="Discord" />
-                {profileData.discord}
-              </div>
-            )}
+            {profileData.discord && <p>Discord: {profileData.discord}</p>}
             {profileData.telegram && (
-              <a 
-                href={`https://t.me/${profileData.telegram}`} 
-                target="_blank" 
-                rel="noopener noreferrer" 
-                className={styles.socialLink}
-              >
-                <img src="/images/telegram-logo.svg" alt="Telegram" />
-                @{profileData.telegram}
+              <a href={`https://t.me/${profileData.telegram}`} target="_blank" rel="noopener noreferrer">
+                Telegram: @{profileData.telegram}
               </a>
             )}
           </div>
-
-          {verificationLoading ? (
-            <div className={styles.loading}>Verifying NFT ownership...</div>
-          ) : (
+          {profileData.isVerifiedHolder && profileData.nftMetadata && (
             <div className={styles.nftSection}>
-              <h3>SNAILS NFTs</h3>
-              <div className={styles.nftGrid}>
-                {profileData.snailsNFTs.map((nft, index) => (
-                  <div key={index} className={styles.nftCard}>
-                    {/* NFT display logic here */}
-                  </div>
-                ))}
+              <h3>Your SNAILS NFT</h3>
+              <div className={styles.nftCard}>
+                <img 
+                  src={profileData.nftMetadata.image} 
+                  alt={profileData.nftMetadata.name}
+                  className={styles.nftImage}
+                />
+                <div className={styles.nftInfo}>
+                  <h4>{profileData.nftMetadata.name}</h4>
+                  {profileData.nftMetadata.description && (
+                    <p>{profileData.nftMetadata.description}</p>
+                  )}
+                </div>
               </div>
             </div>
           )}
+          <button onClick={() => setIsEditing(true)}>Edit Profile</button>
         </div>
       )}
     </div>

@@ -1,6 +1,8 @@
 import { Window as KeplrWindow } from "@keplr-wallet/types";
 import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
 import { GasPrice } from "@cosmjs/stargate";
+import { StdSignature } from "@keplr-wallet/types";
+import { OfflineSigner } from '@cosmjs/proto-signing';
 
 declare global {
   interface Window extends KeplrWindow {}
@@ -9,6 +11,68 @@ declare global {
 const CHAIN_ID = "stargaze-1";
 const RPC_ENDPOINT = "https://rpc.stargaze-apis.com/";
 const DEFAULT_GAS_PRICE = GasPrice.fromString('0.05ustars');
+
+interface PermitSignature {
+  pub_key: {
+    type: string;
+    value: string;
+  };
+  signature: string;
+}
+
+interface Permit {
+  params: {
+    permit_name: string;
+    allowed_tokens: string[];
+    chain_id: string;
+    permissions: string[];
+  };
+  signature: PermitSignature;
+}
+
+export async function signUsernamePermit(
+  username: string,
+  address: string
+): Promise<{
+  signature: string;
+  pub_key: { type: string; value: string };
+  permit: {
+    permit_name: string;
+    allowed_tokens: string[];
+    permissions: string[];
+  };
+}> {
+  if (!window.keplr) {
+    throw new Error('Keplr wallet not found');
+  }
+
+  const permit = {
+    permit_name: 'username_verification',
+    allowed_tokens: [],
+    permissions: ['owner']
+  };
+
+  const message = JSON.stringify({
+    username,
+    timestamp: Date.now(),
+    permit
+  });
+
+  const { signature, pub_key } = await window.keplr.signArbitrary(
+    CHAIN_ID,
+    address,
+    message
+  );
+
+  return {
+    signature,
+    pub_key: {
+      type: 'tendermint/PubKeySecp256k1',
+      value: pub_key
+    },
+    permit
+  };
+}
 
 export const connectKeplr = async () => {
   try {

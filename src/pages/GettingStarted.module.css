@@ -1,13 +1,13 @@
 .hero {
   position: relative;
-  min-height: calc(100vh - 70px);
+  height: 100vh;
   width: 100vw;
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   overflow: hidden;
   background: #0D0E12;
-  margin-top: 70px;
 }
 
 .backgroundVideo {
@@ -22,11 +22,9 @@
 }
 
 .wrapper {
-  position: fixed;
-  top: 70px;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  width: 100%;
+  height: 100%;
   z-index: 50;
   display: flex;
   align-items: center;
@@ -52,6 +50,7 @@
   gap: 1.5rem;
   pointer-events: auto;
   width: 100%;
+  margin-top: -70px;
 }
 
 .titleGroup h1 {
@@ -101,168 +100,167 @@
 }
 
 .videoList {
-  width: 100vw;
-  max-width: 1200px;
+  width: 100%;
+  max-width: 1440px;
   display: flex;
   flex-direction: column;
   gap: 2rem;
-  padding: 2rem;
+  padding: 2rem 4rem;
   position: relative;
   z-index: 2;
-  margin: calc(100vh - 70px) auto 0;
+  margin: calc(100vh + 2rem) auto 0;
   pointer-events: auto;
   background: transparent;
 }
 
 .container {
   width: 100%;
-  padding: 0 24px;
-  margin-top: 70px;
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 2rem 4rem;
   color: #fff;
-  min-height: calc(100vh - 70px);
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
 }
 
 .container h1 {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
-  text-align: center;
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  text-align: left;
+  font-weight: 700;
 }
 
 .container p {
-  font-size: 1rem;
+  font-size: 1.25rem;
   color: rgba(255, 255, 255, 0.8);
-  text-align: center;
-  margin-bottom: 2rem;
+  text-align: left;
+  margin-bottom: 3rem;
+  max-width: 800px;
 }
 
 .videoCard {
   display: grid;
-  grid-template-columns: 640px 1fr;
-  gap: 24px;
-  background: rgba(26, 26, 26, 0.7);
+  grid-template-columns: 640px minmax(400px, 1fr);
+  gap: 2rem;
+  background: rgba(13, 17, 28, 0.8);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-radius: 12px;
   overflow: hidden;
   position: relative;
-  margin-bottom: 24px;
-  min-height: 240px;
+  margin-bottom: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.videoCard:hover {
+  transform: translateY(-2px);
+  border-color: rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
 }
 
 .thumbnailContainer {
-  width: 100%;
-  height: 100%;
+  width: 640px;
+  height: 360px;
   position: relative;
   overflow: hidden;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   background: rgba(0, 0, 0, 0.3);
-  aspect-ratio: 16/9;
-}
-
-.thumbnailContainer > div {
-  width: 100%;
-  height: 100%;
-  aspect-ratio: 16/9;
-}
-
-.thumbnailContainer video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
 }
 
 .videoInfo {
-  padding: 24px;
+  padding: 2rem;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 1.5rem;
+  min-height: 360px;
 }
 
-.videoTitle {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: white;
-  margin: 0;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.videoTitle:hover {
-  color: rgba(255, 255, 255, 0.8);
-}
-
-.creator {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.7);
-  margin: 0;
-}
-
-.description {
-  font-size: 1rem;
-  color: rgba(255, 255, 255, 0.8);
-  margin: 0;
-  line-height: 1.5;
-}
-
-.tag {
-  display: inline-block;
-  padding: 4px 8px;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 4px;
-  font-size: 0.875rem;
-  color: white;
-}
-
-.price {
-  font-size: 1.25rem;
+.videoInfo h2 {
+  font-size: 1.75rem;
   font-weight: 600;
   color: white;
   margin: 0;
 }
 
-.mintCount {
-  font-size: 0.875rem;
-  color: rgba(255, 255, 255, 0.7);
+.videoInfo p {
+  font-size: 1.1rem;
+  color: rgba(255, 255, 255, 0.8);
   margin: 0;
+  line-height: 1.6;
+  text-align: left;
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-top: auto;
+  margin-bottom: 2rem;
+}
+
+.traitField {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.label {
+  color: rgba(255, 255, 255, 0.6);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
+.value {
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
 
 .buttonGroup {
   display: flex;
-  gap: 12px;
+  gap: 0.75rem;
   margin-top: auto;
 }
 
-.playButton,
-.mintButton {
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-size: 1rem;
+.watchButton,
+.mintButton,
+.tipButton {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
 }
 
-.playButton {
+.watchButton {
   background: rgba(255, 255, 255, 0.1);
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.watchButton:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
+}
+
+.tipButton {
+  background: #2196F3;
   color: white;
 }
 
-.playButton:hover:not(:disabled) {
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.playButton:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+.tipButton:hover {
+  background: #1976D2;
+  transform: translateY(-1px);
 }
 
 .mintButton {
@@ -270,63 +268,100 @@
   color: white;
 }
 
-.mintButton:hover {
+.mintButton:hover:not(:disabled) {
   background: #45a049;
+  transform: translateY(-1px);
 }
 
-.quantityInput {
-  width: 60px;
-  padding: 8px;
-  border-radius: 6px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.2);
-  color: white;
-  font-size: 1rem;
-  text-align: center;
+.mintButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
-.quantityInput:focus {
-  outline: none;
-  border-color: rgba(255, 255, 255, 0.4);
-}
-
-.loadingContainer,
-.error {
+.loadingContainer {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 16px;
-  border-radius: 6px;
-  margin-top: 16px;
+  padding: 4rem;
+  font-size: 1.25rem;
+  color: rgba(255, 255, 255, 0.8);
 }
 
-.error {
-  background: rgba(255, 0, 0, 0.1);
-  color: #ff4444;
+.errorContainer {
+  background: rgba(244, 67, 54, 0.1);
+  border: 1px solid rgba(244, 67, 54, 0.2);
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 2rem 0;
+  color: #f44336;
 }
 
-.success {
-  background: rgba(0, 255, 0, 0.1);
-  color: #00ff00;
-}
+@media (max-width: 1440px) {
+  .videoCard {
+    grid-template-columns: 1fr;
+  }
 
-.txLink {
-  color: #4CAF50;
-  text-decoration: none;
-  margin-top: 8px;
-}
+  .thumbnailContainer {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16/9;
+  }
 
-.txLink:hover {
-  text-decoration: underline;
+  .videoInfo {
+    padding: 2rem;
+    min-height: auto;
+  }
 }
 
 @media (max-width: 1024px) {
   .videoCard {
     grid-template-columns: 1fr;
   }
-  
-  .thumbnailContainer {
-    aspect-ratio: 16/9;
+
+  .videoInfo {
+    min-height: auto;
+    padding: 1.5rem;
+  }
+
+  .metadata {
+    grid-template-columns: 1fr;
+  }
+
+  .container h1 {
+    font-size: 2.5rem;
+  }
+
+  .container p {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 1rem;
+    margin-top: 70px;
+  }
+
+  .buttonGroup {
+    flex-direction: column;
+  }
+
+  .watchButton,
+  .mintButton,
+  .tipButton {
+    width: 100%;
+  }
+
+  .container h1 {
+    font-size: 2rem;
+  }
+
+  .videoInfo h2 {
+    font-size: 1.5rem;
+  }
+
+  .modal {
+    padding: 1.5rem;
   }
 }
 
@@ -345,20 +380,6 @@
   color: #ffc107;
 }
 
-@media (max-width: 768px) {
-  .container {
-    padding: 0 16px;
-  }
-  
-  .traitRow {
-    flex-direction: column;
-  }
-  
-  .buttonRow {
-    flex-direction: column;
-  }
-}
-
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -373,52 +394,55 @@
 }
 
 .modal {
-  background: rgba(26, 26, 26, 0.9);
+  background: rgba(13, 17, 28, 0.95);
   border-radius: 12px;
-  padding: 24px;
+  padding: 2rem;
   width: 90%;
-  max-width: 500px;
+  max-width: 480px;
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .modal h3 {
   font-size: 1.5rem;
   color: white;
-  margin: 0 0 16px 0;
+  margin: 0 0 1rem 0;
 }
 
 .modal p {
   font-size: 1rem;
   color: rgba(255, 255, 255, 0.8);
-  margin: 0 0 16px 0;
+  margin: 0 0 1.5rem 0;
+  line-height: 1.6;
 }
 
 .tipInput {
   width: 100%;
-  padding: 12px;
-  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.2);
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.05);
   color: white;
   font-size: 1rem;
-  margin-bottom: 16px;
+  margin-bottom: 1.5rem;
 }
 
 .tipInput:focus {
   outline: none;
   border-color: rgba(255, 255, 255, 0.4);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .modalButtons {
   display: flex;
-  gap: 12px;
+  gap: 1rem;
   justify-content: flex-end;
 }
 
 .modalButtons button {
-  padding: 8px 16px;
-  border-radius: 6px;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
   font-size: 1rem;
   font-weight: 500;
   cursor: pointer;
@@ -426,16 +450,18 @@
   border: none;
 }
 
-.modalButtons .tipButton {
-  background: #4CAF50;
+.modalButtons .confirmButton {
+  background: #2196F3;
   color: white;
+  min-width: 120px;
 }
 
-.modalButtons .tipButton:hover:not(:disabled) {
-  background: #45a049;
+.modalButtons .confirmButton:hover:not(:disabled) {
+  background: #1976D2;
+  transform: translateY(-1px);
 }
 
-.modalButtons .tipButton:disabled {
+.modalButtons .confirmButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
@@ -446,7 +472,8 @@
 }
 
 .modalButtons .cancelButton:hover {
-  background: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-1px);
 }
 
 .error {
