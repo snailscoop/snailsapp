@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { useWallet } from '../contexts/WalletContext';
 import { useGun } from '../contexts/GunContext';
+import { signUsernamePermit, signCommentPermit } from '../utils/wallet';
 import styles from './VideoComments.module.css';
 
 interface Comment {
@@ -7,6 +9,14 @@ interface Comment {
   text: string;
   author: string;
   timestamp: number;
+  permit?: {
+    params: {
+      permit_name: string;
+      chain_id: string;
+      allowed_tokens: string[];
+    };
+    signature: string;
+  };
 }
 
 interface VideoCommentsProps {
@@ -14,96 +24,108 @@ interface VideoCommentsProps {
 }
 
 const VideoComments: React.FC<VideoCommentsProps> = ({ videoId }) => {
-  const { gun, user } = useGun();
+  const { address } = useWallet();
+  const { gun, authenticateUser, isAuthenticated } = useGun();
   const [comments, setComments] = useState<Comment[]>([]);
   const [newComment, setNewComment] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!gun) return;
+    if (!gun || !videoId) return;
 
-    const commentsNode = gun.get('comments').get(videoId);
-    
-    // Subscribe to comments
-    commentsNode.map().on((data, key) => {
-      if (data && key !== '_') {
-        setComments(prev => {
-          const newComments = [...prev];
-          const index = newComments.findIndex(c => c.id === key);
-          if (index === -1) {
-            newComments.push({ ...data, id: key });
-          } else {
-            newComments[index] = { ...data, id: key };
-          }
-          return newComments.sort((a, b) => b.timestamp - a.timestamp);
-        });
-      }
+    // Subscribe to comments for this video
+    const commentsRef = gun.get('videos').get(videoId).get('comments');
+    commentsRef.map().on((data, key) => {
+      if (!data) return;
+      
+      setComments(prevComments => {
+        const existingComment = prevComments.find(c => c.id === key);
+        if (existingComment) {
+          return prevComments.map(c => 
+            c.id === key ? { ...c, ...data } : c
+          );
+        }
+        return [...prevComments, { id: key, ...data }];
+      });
     });
 
-    setIsLoading(false);
-
     return () => {
-      commentsNode.off();
+      commentsRef.map().off();
     };
   }, [gun, videoId]);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!gun || !user || !newComment.trim()) return;
+    if (!gun || !address || !videoId || !newComment.trim()) return;
 
     try {
-      const comment = {
-        text: newComment.trim(),
-        author: user.is?.alias || 'Anonymous',
-        timestamp: Date.now()
-      };
+      setIsSubmitting(true);
+      setError(null);
 
-      const commentsNode = gun.get('comments').get(videoId);
-      await commentsNode.set(comment);
+      // Get permit for comment
+      const permit = await signCommentPermit(videoId, newComment, address);
+
+      // Authenticate with Gun using the permit
+      await authenticateUser(address, permit);
+
+      if (!isAuthenticated) {
+        throw new Error('Failed to authenticate with Gun');
+      }
+
+      // Save comment
+      const commentsRef = gun.get('videos').get(videoId).get('comments');
+      const commentId = Date.now().toString();
+      
+      await new Promise<void>((resolve, reject) => {
+        commentsRef.get(commentId).put({
+          text: newComment.trim(),
+          author: address,
+          timestamp: Date.now()
+        }, (ack) => {
+          if (ack.err) reject(new Error(ack.err));
+          else resolve();
+        });
+      });
+
       setNewComment('');
     } catch (error) {
       console.error('Error posting comment:', error);
+      setError(error instanceof Error ? error.message : 'Failed to post comment');
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  if (isLoading) {
-    return <div className={styles.loading}>Loading comments...</div>;
-  }
 
   return (
     <div className={styles.commentsContainer}>
       <h3>Comments</h3>
-      <form onSubmit={handleSubmit} className={styles.commentForm}>
+      <form onSubmit={handleSubmitComment} className={styles.commentForm}>
         <textarea
           value={newComment}
           onChange={(e) => setNewComment(e.target.value)}
-          placeholder="Add a comment..."
-          className={styles.commentInput}
+          placeholder="Write a comment..."
+          disabled={isSubmitting}
         />
-        <button 
-          type="submit" 
-          className={styles.submitButton}
-          disabled={!newComment.trim()}
-        >
-          Post Comment
+        <button type="submit" disabled={isSubmitting || !newComment.trim()}>
+          {isSubmitting ? 'Posting...' : 'Post Comment'}
         </button>
       </form>
+
+      {error && <div className={styles.error}>{error}</div>}
+
       <div className={styles.commentsList}>
-        {comments.length === 0 ? (
-          <p className={styles.noComments}>No comments yet. Be the first to comment!</p>
-        ) : (
-          comments.map(comment => (
-            <div key={comment.id} className={styles.comment}>
-              <div className={styles.commentHeader}>
-                <span className={styles.author}>{comment.author}</span>
-                <span className={styles.timestamp}>
-                  {new Date(comment.timestamp).toLocaleString()}
-                </span>
-              </div>
-              <p className={styles.text}>{comment.text}</p>
+        {comments.map((comment, index) => (
+          <div key={index} className={styles.comment}>
+            <div className={styles.commentHeader}>
+              <span className={styles.author}>{comment.author}</span>
+              <span className={styles.timestamp}>
+                {new Date(comment.timestamp).toLocaleString()}
+              </span>
             </div>
-          ))
-        )}
+            <div className={styles.commentText}>{comment.text}</div>
+          </div>
+        ))}
       </div>
     </div>
   );

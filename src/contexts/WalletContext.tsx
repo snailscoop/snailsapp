@@ -1,108 +1,68 @@
-import React, { createContext, useContext, useState, useCallback, useEffect, useRef } from 'react';
-import { SigningCosmWasmClient } from "@cosmjs/cosmwasm-stargate";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { CosmWasmClient, SigningCosmWasmClient } from '@cosmjs/cosmwasm-stargate';
 import { connectKeplr, disconnectKeplr, getKeplrAddress } from '../utils/wallet';
 
 interface WalletContextType {
   address: string | null;
-  client: SigningCosmWasmClient | null;
-  isConnecting: boolean;
-  error: string | null;
-  walletStatus: 'loading' | 'success' | 'error';
+  isConnected: boolean;
   connect: () => Promise<void>;
   disconnect: () => void;
+  client: CosmWasmClient | null;
 }
-
-// Create a default connect function that returns a rejected promise with a meaningful error
-const defaultConnect = async () => {
-  throw new Error('WalletContext not initialized');
-};
 
 const WalletContext = createContext<WalletContextType>({
   address: null,
-  client: null,
-  isConnecting: false,
-  error: null,
-  walletStatus: 'loading',
-  connect: defaultConnect,
+  isConnected: false,
+  connect: async () => {},
   disconnect: () => {},
+  client: null,
 });
 
-export const useWallet = () => {
-  const context = useContext(WalletContext);
-  if (!context) {
-    throw new Error('useWallet must be used within a WalletProvider');
-  }
-  return context;
-};
+export const useWallet = () => useContext(WalletContext);
 
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [address, setAddress] = useState<string | null>(null);
-  const [client, setClient] = useState<SigningCosmWasmClient | null>(null);
-  const [isConnecting, setIsConnecting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [walletStatus, setWalletStatus] = useState<'loading' | 'success' | 'error'>('loading');
-  const hasCheckedConnection = useRef(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [client, setClient] = useState<CosmWasmClient | null>(null);
 
-  const connect = useCallback(async () => {
-    if (isConnecting) return;
-    
+  useEffect(() => {
+    const initClient = async () => {
+      if (isConnected) {
+        try {
+          const newClient = await CosmWasmClient.connect('https://rpc.stargaze-apis.com');
+          setClient(newClient);
+        } catch (error) {
+          console.error('Failed to initialize CosmWasm client:', error);
+        }
+      } else {
+        setClient(null);
+      }
+    };
+
+    initClient();
+  }, [isConnected]);
+
+  const connect = async () => {
     try {
-      setIsConnecting(true);
-      setError(null);
-      setWalletStatus('loading');
-
-      const { address, client } = await connectKeplr();
-      setAddress(address);
-      setClient(client);
-      setWalletStatus('success');
-    } catch (err) {
-      console.error('Wallet connection error:', err);
-      setError(err instanceof Error ? err.message : 'Failed to connect wallet');
-      setWalletStatus('error');
-      throw err;
-    } finally {
-      setIsConnecting(false);
+      const { address: newAddress, client: newClient } = await connectKeplr();
+      setAddress(newAddress);
+      setClient(newClient);
+      setIsConnected(true);
+    } catch (error) {
+      console.error('Failed to connect wallet:', error);
+      throw error;
     }
-  }, []);
+  };
 
-  const disconnect = useCallback(() => {
+  const disconnect = () => {
     disconnectKeplr();
     setAddress(null);
     setClient(null);
-    setError(null);
-    setWalletStatus('loading');
-  }, []);
-
-  // Check if wallet is already connected on mount
-  useEffect(() => {
-    const checkConnection = async () => {
-      if (hasCheckedConnection.current) return;
-      hasCheckedConnection.current = true;
-      
-      try {
-        const savedAddress = await getKeplrAddress();
-        if (savedAddress && !address) {
-          await connect();
-        }
-      } catch (error) {
-        console.error('Error checking wallet connection:', error);
-      }
-    };
-    checkConnection();
-  }, []);
-
-  const value = React.useMemo(() => ({
-    address,
-    client,
-    isConnecting,
-    error,
-    walletStatus,
-    connect,
-    disconnect,
-  }), [address, client, isConnecting, error, walletStatus, connect, disconnect]);
+    setIsConnected(false);
+  };
 
   return (
-    <WalletContext.Provider value={value}>
+    <WalletContext.Provider value={{ address, isConnected, connect, disconnect, client }}>
       {children}
     </WalletContext.Provider>
   );

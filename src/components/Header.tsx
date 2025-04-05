@@ -1,33 +1,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { useGun } from '../contexts/GunContext';
 import NavDropdown from './NavDropdown';
 import styles from './Header.module.css';
 
-interface TrafficLightProps {
-  status: 'green' | 'blue' | 'yellow' | 'red';
-  label: string;
-}
-
-const TrafficLight: React.FC<TrafficLightProps> = ({ status, label }) => (
-  <div className={styles.trafficLightContainer}>
-    <span className={styles.trafficLabel}>{label}</span>
-    <div className={styles.trafficLight}>
-      <span className={`${styles.light} ${styles.red} ${status === 'red' ? styles.active : ''}`} />
-      <span className={`${styles.light} ${styles.yellow} ${status === 'yellow' ? styles.active : ''}`} />
-      <span className={`${styles.light} ${styles.green} ${status === 'green' ? styles.active : ''}`} />
-      <span className={`${styles.light} ${styles.blue} ${status === 'blue' ? styles.active : ''}`} />
-    </div>
-  </div>
-);
-
 interface HeaderProps {
-  apiStatus: 'green' | 'blue' | 'yellow' | 'red';
+  apiStatus: {
+    status: 'green' | 'yellow' | 'red';
+  };
 }
 
 const Header: React.FC<HeaderProps> = ({ apiStatus }) => {
-  const { connectionStatus: gunStatus } = useGun();
-
   return (
     <header className={styles.header}>
       <div className={styles.headerContent}>
@@ -35,7 +17,7 @@ const Header: React.FC<HeaderProps> = ({ apiStatus }) => {
           <Link to="/" className={styles.logo}>
             <img src="/images/Logo.png" alt="SNAILS." />
           </Link>
-          
+
           <nav className={styles.nav}>
             <div className={styles.dropdown}>
               <span>EDUCATIONAL CONTENT ▾</span>
@@ -63,14 +45,26 @@ const Header: React.FC<HeaderProps> = ({ apiStatus }) => {
                 <a href="https://www.stargaze.zone/l/snailssong" target="_blank" rel="noopener noreferrer">Christmas OEM</a>
               </div>
             </div>
+
+            <div className={styles.dropdown}>
+              <span>CHATS ▾</span>
+              <div className={styles.dropdownContent}>
+                <Link to="/chats/groups">Groups</Link>
+                <Link to="/chats/dms">DM's</Link>
+                <Link to="/chats/broadcasts">Broadcasts</Link>
+              </div>
+            </div>
+
+            <div className={styles.dropdown}>
+              <span>TOKEN GATING ▾</span>
+              <div className={styles.dropdownContent}>
+                <Link to="/token-gating">Configure</Link>
+              </div>
+            </div>
           </nav>
         </div>
 
         <div className={styles.rightSection}>
-          <div className={styles.statusLights}>
-            <TrafficLight status={apiStatus} label="API" />
-            <TrafficLight status={gunStatus} label="P2P" />
-          </div>
           <NavDropdown />
         </div>
       </div>

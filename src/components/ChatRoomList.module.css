@@ -1,0 +1,116 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--background-secondary);
+  border-right: 1px solid var(--border-color);
+}
+
+.header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--accent-color);
+}
+
+.roomList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.roomItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  background: var(--background-primary);
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.roomItem:hover {
+  background: var(--background-hover);
+}
+
+.roomItem.active {
+  background: var(--accent-color);
+  color: white;
+}
+
+.roomInfo {
+  flex: 1;
+  margin-right: 12px;
+}
+
+.roomName {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 4px 0;
+}
+
+.roomDescription {
+  font-size: 14px;
+  color: var(--text-secondary);
+  margin: 0 0 8px 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.active .roomDescription {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.roomMeta {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.active .roomMeta {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.joinButton {
+  padding: 6px 12px;
+  border-radius: 4px;
+  border: none;
+  background: var(--accent-color);
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.joinButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.joinButton.leave {
+  background: transparent;
+  border: 1px solid currentColor;
+}
+
+.active .joinButton.leave {
+  color: white;
+  border-color: white;
+} 

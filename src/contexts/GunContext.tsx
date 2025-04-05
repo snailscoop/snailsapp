@@ -1,233 +1,174 @@
-import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import Gun from 'gun';
-import 'gun/axe.js';
-import 'gun/sea.js';
-
-// Type definitions for Gun
-interface GunConstructorOptions {
-  peers?: string[];
-  localStorage?: boolean;
-  file?: boolean;
-  web?: boolean;
-  axe?: boolean;
-  multicast?: boolean;
-  retry?: number;
-  ws?: {
-    maxPayload?: number;
-  };
-  [key: string]: any;
-}
-
-interface IGunNode {
-  get: (key: string) => IGunNode;
-  put: (data: any, cb?: (ack: any) => void) => IGunNode;
-  once: (cb: (data: any) => void) => void;
-  on: (cb: (data: any) => void) => void;
-  off: () => void;
-}
-
-interface IGunInstance extends Gun {
-  user: () => any;
-  _: {
-    opt: {
-      peers: Record<string, any>;
-    };
-  };
-  get: (key: string) => IGunNode;
-  on: (event: string, callback: (peer: any) => void) => void;
-}
+import { Permit } from '../utils/wallet';
 
 interface GunContextType {
-  gun: IGunInstance | null;
-  user: any;
-  isConnected: boolean;
-  connectionStatus: 'green' | 'blue' | 'yellow' | 'red';
-}
-
-const GunContext = createContext<GunContextType>({
-  gun: null,
-  user: null,
-  isConnected: false,
-  connectionStatus: 'yellow'
-});
-
-export const useGun = () => useContext(GunContext);
-
-// Debug logging utility with emojis
-const debugLog = (level: 'info' | 'warn' | 'error', message: string, data?: any) => {
-  const emoji = {
-    info: '📝',
-    warn: '⚠️',
-    error: '❌'
+  gun: Gun | null;
+  connectionState: boolean;
+  diagnostics: {
+    wsStatus: boolean;
+    healthStatus: boolean;
   };
-  const timestamp = new Date().toISOString();
-  console[level === 'info' ? 'log' : level](
-    `${emoji[level]} [GUN ${timestamp}] ${message}`,
-    data || ''
-  );
-};
-
-// Single GUN instance outside React lifecycle
-let globalGunInstance: IGunInstance | null = null;
-
-interface AckType {
-  err?: string;
-  ok?: number;
+  authenticateUser: (address: string, permit: Permit) => Promise<void>;
+  isAuthenticated: boolean;
+  connectedPeers: Map<string, any>;
 }
+
+interface GunPeer {
+  url: string;
+  id: string;
+}
+
+const GunContext = createContext<GunContextType | null>(null);
+
+const PRIMARY_PEER = 'ws://localhost:8765/gun';
 
 export const GunProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [gun, setGun] = useState<IGunInstance | null>(null);
-  const [user, setUser] = useState<any>(null);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<'green' | 'blue' | 'yellow' | 'red'>('yellow');
-  
-  const connectionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const [gun, setGun] = useState<Gun | null>(null);
+  const [connectionState, setConnectionState] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [connectedPeers] = useState(() => new Map());
+  const [diagnostics, setDiagnostics] = useState({
+    wsStatus: false,
+    healthStatus: false
+  });
 
-  // Memoized connection state update
-  const updateConnectionState = useCallback((newStatus: 'green' | 'blue' | 'yellow' | 'red') => {
-    debugLog('info', `Connection status update: ${newStatus}`);
-    setConnectionStatus(newStatus);
-    setIsConnected(newStatus === 'green');
-  }, []);
+  const authenticateUser = async (address: string, permit: Permit) => {
+    if (!gun) throw new Error('Gun instance not initialized');
 
-  const testConnection = async (gunInstance: IGunInstance) => {
     try {
-      const testNode = gunInstance.get('test');
+      // Store the permit in Gun for this user
+      const userRef = gun.get('users').get(address);
       await new Promise<void>((resolve, reject) => {
-        const timeout = setTimeout(() => reject(new Error('Connection test timeout')), 2000);
-        const data = { ping: Date.now() };
-        testNode.put(data);
-        testNode.once((data: any) => {
-          clearTimeout(timeout);
-          if (data && data.ping) {
-            resolve();
-          } else {
-            reject(new Error('Invalid data received'));
-          }
+        userRef.get('permit').put(permit, (ack) => {
+          if (ack.err) reject(new Error(ack.err));
+          else resolve();
         });
       });
-      debugLog('info', '✅ Connection test successful');
-      return true;
+
+      // Mark user as authenticated
+      setIsAuthenticated(true);
+
+      // Set up user data structure
+      userRef.get('data').put({
+        lastActive: Date.now(),
+        address
+      });
+
     } catch (error) {
-      debugLog('error', '❌ Connection test failed:', error);
+      console.error('Failed to authenticate user:', error);
+      throw error;
+    }
+  };
+
+  const testPeer = async (peer: string) => {
+    try {
+      const ws = new WebSocket(peer);
+      return new Promise<boolean>((resolve) => {
+        ws.onopen = () => {
+          console.log(`📝 [GUN ${new Date().toISOString()}] ✅ Peer ${peer} is healthy `);
+          ws.close();
+          resolve(true);
+        };
+        ws.onerror = () => {
+          console.log(`📝 [GUN ${new Date().toISOString()}] ❌ Peer ${peer} is unhealthy`);
+          resolve(false);
+        };
+        setTimeout(() => {
+          ws.close();
+          resolve(false);
+        }, 2000);
+      });
+    } catch (error) {
+      console.error(`Failed to test peer ${peer}:`, error);
       return false;
     }
   };
 
-  const initializeGun = useCallback(() => {
-    try {
-      debugLog('info', '🔄 Creating new GUN instance');
-      const gunOptions = {
-        peers: ['http://localhost:8765/gun'],
-        localStorage: false,
-        file: false,
-        web: false,
-        axe: false,
-        multicast: false,
-        retry: 500,
-        ws: {
-          maxPayload: 50 * 1024 * 1024
-        }
-      };
-      const gunInstance = new Gun(gunOptions as any) as IGunInstance;
-
-      // Debug peer configuration
-      debugLog('info', '⚙️ GUN configuration', {
-        peers: gunInstance._.opt.peers
-      });
-
-      // Connection monitoring
-      gunInstance.on('hi', async (peer) => {
-        debugLog('info', '🤝 Peer connected', {
-          url: peer.url,
-          id: peer.id
-        });
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-        }
-        
-        // Test connection and update status
-        const isConnected = await testConnection(gunInstance);
-        if (isConnected) {
-          updateConnectionState('green');
-        } else {
-          updateConnectionState('yellow');
-        }
-      });
-
-      gunInstance.on('bye', (peer) => {
-        debugLog('warn', '👋 Peer disconnected', {
-          url: peer.url,
-          id: peer.id
-        });
-        
-        if (connectionTimeoutRef.current) {
-          clearTimeout(connectionTimeoutRef.current);
-        }
-        
-        connectionTimeoutRef.current = setTimeout(async () => {
-          const connectedPeers = Object.keys(gunInstance._.opt.peers).length;
-          if (connectedPeers === 0) {
-            debugLog('error', '💔 All peers disconnected');
-            updateConnectionState('red');
-          } else {
-            // Test remaining connections
-            const isConnected = await testConnection(gunInstance);
-            if (isConnected) {
-              updateConnectionState('green');
-            } else {
-              updateConnectionState('yellow');
-            }
-          }
-        }, 2000);
-      });
-
-      // Set references and state
-      globalGunInstance = gunInstance;
-      setGun(gunInstance);
-
-      // Initialize user
-      try {
-        const gunUser = gunInstance.user();
-        setUser(gunUser);
-        debugLog('info', '👤 User initialized');
-        updateConnectionState('blue'); // User initialized but not active
-      } catch (userError) {
-        debugLog('error', '🚫 Error initializing GUN user:', userError);
-        updateConnectionState('red');
-      }
-
-      // Initial connection test
-      testConnection(gunInstance).then(isConnected => {
-        if (isConnected) {
-          updateConnectionState('green');
-        } else {
-          updateConnectionState('yellow');
-        }
-      });
-
-    } catch (error) {
-      debugLog('error', '💥 Error initializing GUN:', error);
-      updateConnectionState('red');
-    }
-  }, [updateConnectionState]);
+  const discoverPeers = async () => {
+    const isHealthy = await testPeer(PRIMARY_PEER);
+    setConnectionState(isHealthy);
+    setDiagnostics(prev => ({
+      ...prev,
+      wsStatus: isHealthy
+    }));
+    return isHealthy;
+  };
 
   useEffect(() => {
-    debugLog('info', '🎬 GunProvider mounting');
+    const initializeGun = async () => {
+      const isHealthy = await discoverPeers();
+      
+      if (!isHealthy) {
+        console.error('No healthy peers found');
+        return;
+      }
+
+      const gunInstance = new Gun({
+        peers: [PRIMARY_PEER],
+        localStorage: false,
+        radisk: false,
+        multicast: false
+      });
+
+      // Add connection monitoring
+      gunInstance.on('hi', (peer: GunPeer) => {
+        console.log(`📝 [GUN ${new Date().toISOString()}] Peer connected:`, peer);
+        connectedPeers.set(peer.id, peer);
+        setConnectionState(true);
+      });
+
+      gunInstance.on('bye', (peer: GunPeer) => {
+        console.log(`📝 [GUN ${new Date().toISOString()}] Peer disconnected:`, peer);
+        connectedPeers.delete(peer.id);
+        discoverPeers();
+      });
+
+      // Add authentication monitoring
+      gunInstance.on('auth', (ack) => {
+        if (ack.err) {
+          console.error('Gun authentication error:', ack.err);
+          setIsAuthenticated(false);
+        } else {
+          console.log('Gun authenticated:', ack);
+          setIsAuthenticated(true);
+        }
+      });
+
+      setGun(gunInstance);
+    };
+
     initializeGun();
 
+    // Set up periodic health checks
+    const healthCheckInterval = setInterval(discoverPeers, 30000);
+
     return () => {
-      debugLog('info', '🔚 GunProvider unmounting');
-      if (connectionTimeoutRef.current) {
-        clearTimeout(connectionTimeoutRef.current);
+      clearInterval(healthCheckInterval);
+      if (gun) {
+        gun.off();
       }
-      // Don't clean up global instance on unmount
     };
-  }, [initializeGun]);
+  }, []);
 
   return (
-    <GunContext.Provider value={{ gun, user, isConnected, connectionStatus }}>
+    <GunContext.Provider value={{ 
+      gun, 
+      connectionState, 
+      diagnostics,
+      authenticateUser,
+      isAuthenticated,
+      connectedPeers
+    }}>
       {children}
     </GunContext.Provider>
   );
+};
+
+export const useGun = () => {
+  const context = useContext(GunContext);
+  if (!context) {
+    throw new Error('useGun must be used within a GunProvider');
+  }
+  return context;
 }; 

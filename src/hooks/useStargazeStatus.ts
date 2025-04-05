@@ -1,49 +1,95 @@
-import { useState, useEffect, useCallback } from 'react';
-import { CosmWasmClient } from '@cosmjs/cosmwasm-stargate';
+import { useState, useEffect } from 'react';
 
-const RPC_ENDPOINT = 'https://rpc.stargaze-apis.com/';
-const REST_ENDPOINT = 'https://rest.stargaze-apis.com/';
-const GRAPHQL_ENDPOINT = 'https://graphql.stargaze.zone/';
+const GRAPHQL_ENDPOINTS = [
+  '/graphql',
+  '/graphql-fallback'
+];
+
+const RETRY_INTERVAL = 5000; // 5 seconds between retries
+const MAX_RETRIES = 3;
 
 export const useStargazeStatus = () => {
-  const [status, setStatus] = useState<'green' | 'blue' | 'yellow' | 'red'>('green');
-
-  const checkEndpoints = useCallback(async () => {
-    try {
-      // Test RPC endpoint by trying to connect
-      const client = await CosmWasmClient.connect(RPC_ENDPOINT);
-      const [block] = await Promise.all([
-        client.getBlock(),
-        // Test REST endpoint
-        fetch(REST_ENDPOINT + 'cosmos/base/tendermint/v1beta1/blocks/latest'),
-        // Test GraphQL endpoint
-        fetch(GRAPHQL_ENDPOINT, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            query: `{ block { height } }`
-          })
-        })
-      ]);
-
-      // Always set to green status
-      setStatus('green');
-    } catch (error) {
-      console.error('Stargaze API check failed:', error);
-      // Even on error, maintain green status
-      setStatus('green');
-    }
-  }, []);
+  const [status, setStatus] = useState<'green' | 'yellow' | 'red'>('red');
+  const [currentEndpoint, setCurrentEndpoint] = useState(GRAPHQL_ENDPOINTS[0]);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
-    // Initial check
-    checkEndpoints();
+    const checkEndpoint = async () => {
+      try {
+        console.log(`Attempting to connect to Stargaze API at ${currentEndpoint}`);
+        
+        const response = await fetch(currentEndpoint, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+          },
+          body: JSON.stringify({
+            query: `
+              {
+                blocks(first: 1) {
+                  edges {
+                    node {
+                      blockHeight
+                    }
+                  }
+                  pageInfo {
+                    hasNextPage
+                    endCursor
+                  }
+                }
+              }
+            `,
+          }),
+          credentials: 'omit',
+        });
 
-    // Check every 30 seconds
-    const interval = setInterval(checkEndpoints, 30000);
+        console.log(`Stargaze API response status: ${response.status}`);
 
+        if (!response.ok) {
+          throw new Error(`GraphQL endpoint failed with status ${response.status}`);
+        }
+
+        const data = await response.json();
+        console.log('Stargaze API response:', data);
+        
+        if (data?.errors) {
+          throw new Error(`GraphQL errors: ${JSON.stringify(data.errors)}`);
+        }
+
+        if (data?.data?.blocks?.edges?.[0]?.node?.blockHeight) {
+          console.log('Successfully connected to Stargaze API');
+          setStatus('green');
+          setRetryCount(0);
+        } else {
+          throw new Error('Invalid response from GraphQL endpoint');
+        }
+      } catch (error) {
+        console.error('Stargaze API check failed:', error);
+        
+        if (retryCount < MAX_RETRIES) {
+          setRetryCount(prev => prev + 1);
+          setStatus('yellow');
+        } else {
+          // Try fallback endpoint if available
+          const nextEndpointIndex = GRAPHQL_ENDPOINTS.indexOf(currentEndpoint) + 1;
+          if (nextEndpointIndex < GRAPHQL_ENDPOINTS.length) {
+            console.log(`Switching to fallback endpoint: ${GRAPHQL_ENDPOINTS[nextEndpointIndex]}`);
+            setCurrentEndpoint(GRAPHQL_ENDPOINTS[nextEndpointIndex]);
+            setRetryCount(0);
+            setStatus('yellow');
+          } else {
+            console.error('All endpoints failed');
+            setStatus('red');
+          }
+        }
+      }
+    };
+
+    checkEndpoint();
+    const interval = setInterval(checkEndpoint, RETRY_INTERVAL);
     return () => clearInterval(interval);
-  }, [checkEndpoints]);
+  }, [currentEndpoint, retryCount]);
 
-  return status;
+  return { status, endpoint: currentEndpoint };
 }; 

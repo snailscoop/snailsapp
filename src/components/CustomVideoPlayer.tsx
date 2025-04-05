@@ -6,9 +6,19 @@ interface CustomVideoPlayerProps {
   src: string;
   poster?: string;
   isPreview?: boolean;
+  onPlay?: () => void;
+  onPause?: () => void;
+  onEnded?: () => void;
 }
 
-const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ src, poster, isPreview = false }) => {
+const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ 
+  src, 
+  poster, 
+  isPreview = false,
+  onPlay,
+  onPause,
+  onEnded
+}) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -38,16 +48,39 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ src, poster, isPr
       setIsFullscreen(!!document.fullscreenElement);
     };
 
+    const handlePlay = () => {
+      setIsPlaying(true);
+      setShowPreview(false);
+      onPlay?.();
+    };
+
+    const handlePause = () => {
+      setIsPlaying(false);
+      onPause?.();
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setShowPreview(true);
+      onEnded?.();
+    };
+
     video.addEventListener('timeupdate', updateProgress);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('play', handlePlay);
+    video.addEventListener('pause', handlePause);
+    video.addEventListener('ended', handleEnded);
     document.addEventListener('fullscreenchange', handleFullscreenChange);
 
     return () => {
       video.removeEventListener('timeupdate', updateProgress);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('play', handlePlay);
+      video.removeEventListener('pause', handlePause);
+      video.removeEventListener('ended', handleEnded);
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, []);
+  }, [onPlay, onPause, onEnded]);
 
   const formatTime = (time: number): string => {
     const minutes = Math.floor(time / 60);
@@ -55,24 +88,24 @@ const CustomVideoPlayer: React.FC<CustomVideoPlayerProps> = ({ src, poster, isPr
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (!videoRef.current) return;
     
-    if (isPlaying) {
-      videoRef.current.pause();
-    } else {
-      videoRef.current.play();
-      setShowPreview(false);
+    try {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        await videoRef.current.play();
+      }
+    } catch (error) {
+      console.error('Error toggling play state:', error);
     }
-    setIsPlaying(!isPlaying);
   };
 
   const handleStop = () => {
     if (!videoRef.current) return;
     videoRef.current.pause();
     videoRef.current.currentTime = 0;
-    setIsPlaying(false);
-    setShowPreview(true);
   };
 
   const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {

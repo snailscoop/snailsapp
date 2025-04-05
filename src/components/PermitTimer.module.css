@@ -1,0 +1,41 @@
+.container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  font-size: 14px;
+  z-index: 1000;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  transition: opacity 0.3s ease;
+}
+
+.title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: #00ff9d;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.timer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 4px 0;
+}
+
+.type {
+  color: #888;
+}
+
+.time {
+  font-family: monospace;
+  color: #fff;
+  font-weight: 500;
+} 

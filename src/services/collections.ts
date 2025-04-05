@@ -3,6 +3,7 @@ import { isEqual } from 'lodash';
 
 const STARGAZE_RPC = "https://rpc.stargaze-apis.com/";
 const CONTRACT_ADDRESS = "stars1sryvfl50ep8u450u27qj7fgularqfxycwqhdp057260lvuhpkfvs28fag0";
+const OM_IBC_DENOM = 'ibc/3BD86E80E000B52DA57C474A6A44E37F73D34E38A1FA79EE678E08D119FC555B';
 
 export interface OEMCollection {
   contractAddress: string;
@@ -168,24 +169,34 @@ export class CollectionService {
 
   private async getMintConfig(contractAddress: string) {
     try {
-      const configQuery = {
-        config: {}
-      };
-      const config = await this.client!.queryContractSmart(contractAddress, configQuery);
+      // First get the minter contract address
+      const minterResponse = await this.client!.queryContractSmart(contractAddress, {
+        minter: {}
+      });
+
+      // Then get the mint configuration from the minter contract
+      const minterConfig = await this.client!.queryContractSmart(minterResponse.minter, {
+        mint_price: {}
+      });
+
+      // Get collection info for token count
+      const collectionInfo = await this.client!.queryContractSmart(contractAddress, {
+        collection_info: {}
+      });
       
       let status: 'active' | 'ended' | 'upcoming' = 'upcoming';
-      if (config.start_time && new Date(config.start_time * 1000) > new Date()) {
+      if (minterConfig.start_time && new Date(minterConfig.start_time * 1000) > new Date()) {
         status = 'upcoming';
-      } else if (config.token_count >= config.num_tokens) {
+      } else if (collectionInfo.num_tokens >= minterConfig.num_tokens) {
         status = 'ended';
       } else {
         status = 'active';
       }
 
       return {
-        price: config.unit_price ? `${parseInt(config.unit_price) / 1000000} STARS` : "TBA",
-        maxTokens: config.num_tokens || 0,
-        mintedTokens: config.token_count || 0,
+        price: minterConfig.amount ? `${parseInt(minterConfig.amount) / 1000000} ${minterConfig.denom === OM_IBC_DENOM ? '$OM' : 'STARS'}` : "TBA",
+        maxTokens: minterConfig.num_tokens || 0,
+        mintedTokens: collectionInfo.num_tokens || 0,
         status
       };
     } catch (error) {

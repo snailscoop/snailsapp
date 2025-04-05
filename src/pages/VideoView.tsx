@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { useWallet } from '../contexts/WalletContext';
-import CustomVideoPlayer from '../components/CustomVideoPlayer';
+import EnhancedVideoPlayer from '../components/EnhancedVideoPlayer';
 import VideoComments from '../components/VideoComments';
 import styles from './VideoView.module.css';
 
@@ -28,28 +28,31 @@ interface VideoInfo {
   minted?: string;
   totalSupply?: string;
   price?: string;
+  videoUrl: string;
 }
 
 const VideoView: React.FC = () => {
   const { videoId } = useParams<{ videoId: string }>();
   const { client, address } = useWallet();
   const [videoInfo, setVideoInfo] = useState<VideoInfo | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [isMinting, setIsMinting] = useState(false);
-  const [txHash, setTxHash] = useState<string | null>(null);
+  const [txHash, setTxHash] = useState<string | undefined>();
 
   const fetchVideoInfo = async () => {
     if (!client || !videoId) return;
 
     try {
       setLoading(true);
-      setError(null);
+      setError(undefined);
 
-      // Find the collection that matches the videoId
-      const collection = COLLECTIONS.find(c => c.address === videoId);
+      // Extract collection address and token ID from videoId
+      const [collectionAddress, tokenId] = videoId.split('-');
+      const collection = COLLECTIONS.find(c => c.address === collectionAddress);
+      
       if (!collection) {
-        throw new Error('Video not found');
+        throw new Error('Collection not found');
       }
 
       // Get collection info
@@ -57,12 +60,16 @@ const VideoView: React.FC = () => {
         collection_info: {}
       });
 
-      // Get minter info
+      // Get token info
+      const tokenInfo = await client.queryContractSmart(collection.address, {
+        nft_info: { token_id: tokenId }
+      });
+
+      // Get minter info for price
       const minterResponse = await client.queryContractSmart(collection.address, {
         minter: {}
       });
 
-      // Get minter config from minter contract
       const minterConfig = await client.queryContractSmart(minterResponse.minter, {
         mint_price: {}
       });
@@ -72,15 +79,16 @@ const VideoView: React.FC = () => {
       const denom = minterConfig.denom === OM_IBC_DENOM ? '$OM' : 'STARS';
 
       setVideoInfo({
-        title: collectionInfo.name || 'Untitled Collection',
-        description: collectionInfo.description || 'No description available',
+        title: tokenInfo.token_uri?.name || collectionInfo.name || 'Untitled Video',
+        description: tokenInfo.token_uri?.description || collectionInfo.description || 'No description available',
         creator: collectionInfo.creator || 'Unknown Creator',
-        category: collectionInfo.category || 'Educational',
-        thumbnail: collectionInfo.image?.replace('ipfs://', 'https://ipfs.io/ipfs/'),
-        music: collectionInfo.music,
-        minted: collectionInfo.num_tokens?.toString() || '0',
+        category: tokenInfo.token_uri?.attributes?.find((attr: any) => attr.trait_type.toLowerCase() === 'category')?.value || 'Educational',
+        thumbnail: tokenInfo.token_uri?.image?.replace('ipfs://', 'https://ipfs.io/ipfs/'),
+        music: tokenInfo.token_uri?.attributes?.find((attr: any) => attr.trait_type.toLowerCase() === 'music')?.value,
+        minted: '1', // Since we can fetch the token, it's minted
         totalSupply: minterConfig.num_tokens?.toString() || '0',
-        price: `${priceAmount} ${denom}`
+        price: `${priceAmount} ${denom}`,
+        videoUrl: tokenInfo.token_uri?.animation_url?.replace('ipfs://', 'https://ipfs.io/ipfs/') || '/videos/background.mp4'
       });
     } catch (err) {
       console.error('Error fetching video info:', err);
@@ -94,8 +102,8 @@ const VideoView: React.FC = () => {
     if (!client || !address || !videoId) return;
     
     setIsMinting(true);
-    setError(null);
-    setTxHash(null);
+    setError(undefined);
+    setTxHash(undefined);
     
     try {
       const collection = COLLECTIONS.find(c => c.address === videoId);
@@ -147,11 +155,11 @@ const VideoView: React.FC = () => {
   }, [client, videoId]);
 
   if (loading) {
-    return <div className={styles.loadingContainer}>Loading video...</div>;
+    return <div className={styles.loading}>Loading video...</div>;
   }
 
   if (error || !videoInfo) {
-    return <div className={styles.errorContainer}>{error || 'Video not found'}</div>;
+    return <div className={styles.error}>{error || 'Video not found'}</div>;
   }
 
   return (
@@ -159,10 +167,11 @@ const VideoView: React.FC = () => {
       <div className={styles.mainContent}>
         <div className={styles.videoSection}>
           <div className={styles.videoPlayer}>
-            <CustomVideoPlayer
-              src="/videos/background.mp4"
-              poster="/videos/background.mp4"
-              isPreview={false}
+            <EnhancedVideoPlayer
+              tokenId={videoId || ''}
+              src={videoInfo.videoUrl}
+              poster={videoInfo.thumbnail}
+              userId={address}
             />
           </div>
           <div className={styles.videoInfo}>

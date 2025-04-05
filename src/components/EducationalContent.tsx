@@ -18,12 +18,12 @@ const EducationalContent = () => {
           <p>Essential guides and tutorials for entering the Cosmos ecosystem.</p>
         </Link>
 
-        <Link to="/exploring" className={styles.card}>
+        <Link to="/exploring-cosmos" className={styles.card}>
           <h3>Exploring the Cosmos</h3>
           <p>Deep dive into the Cosmos ecosystem and discover its potential.</p>
         </Link>
 
-        <Link to="/community" className={styles.card}>
+        <Link to="/community-building" className={styles.card}>
           <h3>Community Building</h3>
           <p>Learn how to engage with and grow the Cosmos community.</p>
         </Link>

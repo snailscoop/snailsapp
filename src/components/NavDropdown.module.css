@@ -1,61 +1,144 @@
 .dropdownContainer {
   position: relative;
-  display: inline-block;
+  display: flex;
+  align-items: center;
 }
 
-.snailsImage {
-  width: 48px;
-  height: 48px;
+.profileButton {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  background: var(--card-background);
+  border-radius: 8px;
   cursor: pointer;
-  transition: transform 0.2s ease;
-  border-radius: 50%;
-  background-color: rgba(0, 0, 0, 0.6);
-  padding: 6px;
-  object-fit: cover;
+  transition: all 0.2s ease;
+  border: 1px solid var(--border-color);
+  min-width: 200px;
 }
 
-.snailsImage:hover {
-  transform: scale(1.05);
-  background-color: rgba(0, 0, 0, 0.8);
+.profileButton:hover {
+  background: var(--card-background-hover);
+}
+
+.avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 1rem;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.displayName {
+  color: var(--text-color);
+  font-weight: 500;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.address {
+  color: var(--text-secondary);
+  font-size: 0.8rem;
+  font-family: monospace;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.premiumIndicator {
+  color: #FFD700;
+  font-size: 1rem;
+  animation: shine 2s infinite;
+  margin-right: 0.5rem;
+}
+
+.copyButton {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.25rem;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+}
+
+.copyButton:hover {
+  background: var(--background-hover);
+  color: var(--text-color);
+}
+
+.connectButton {
+  padding: 0.5rem 1rem;
+  background: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.connectButton:hover {
+  background: var(--primary-hover);
 }
 
 .dropdownMenu {
   position: absolute;
   top: 100%;
   right: 0;
-  background-color: rgba(0, 0, 0, 0.9);
+  margin-top: 0.5rem;
+  background: var(--card-background);
   border-radius: 8px;
-  padding: 8px;
-  min-width: 180px;
-  z-index: 1000;
+  border: 1px solid var(--border-color);
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  margin-top: 8px;
+  overflow: hidden;
+  z-index: 1000;
+  min-width: 200px;
 }
 
 .dropdownItem {
-  display: block;
   width: 100%;
-  padding: 12px 16px;
-  text-align: left;
+  padding: 0.75rem 1rem;
   background: none;
   border: none;
-  color: white;
+  color: var(--text-color);
+  text-align: left;
   cursor: pointer;
-  font-size: 14px;
-  transition: background-color 0.2s ease, color 0.2s ease;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .dropdownItem:hover {
-  background-color: rgba(255, 107, 0, 0.2);
-  color: #ff6b00;
+  background: var(--background-hover);
 }
 
-.dropdownMenu::before {
-  content: '';
-  position: absolute;
-  top: -8px;
-  right: 20px;
-  border-left: 8px solid transparent;
-  border-right: 8px solid transparent;
-  border-bottom: 8px solid rgba(0, 0, 0, 0.9);
+.dropdownItem:not(:last-child) {
+  border-bottom: 1px solid var(--border-color);
+}
+
+@keyframes shine {
+  0% { opacity: 0.8; }
+  50% { opacity: 1; }
+  100% { opacity: 0.8; }
 } 
